@@ -10,6 +10,8 @@ for lookup after you understand the runtime-kernel model.
 | [API Reference](api-reference.md) | REST routes, WebSocket messages, SDK classes, SDK methods, and browser-facing facade contracts |
 | [Spec Reference](../spec/spec-overview.md) | `message`, `api`, `component`, manifest, encoding, versioning, and domain catalogs |
 | [Runtime Tables](runtime-layout.md) | installed paths, package layout, service names, licenses, and distribution notes |
+| [Support and Compatibility](support-and-compatibility.md) | supported targets, version compatibility, and limits to apply before deployment |
+| [Installation Reference](installation-reference.md) | optional installer settings and recovery details |
 
 Reference does not document private runtime implementation details. Public docs
 describe the contracts, configuration, status surfaces, and troubleshooting

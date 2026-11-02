@@ -3,7 +3,7 @@ name: Documentation
 on:
   pull_request:
   push:
-    tags: ['v*']
+    tags: ['v*', 'docs-v*-r*']
   workflow_dispatch:
     inputs:
       repository:
@@ -27,6 +27,8 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       artifact_id: ${{ steps.artifact.outputs.artifact_id }}
+      product_release_tag: ${{ steps.identity.outputs.product_release_tag }}
+      docs_revision: ${{ steps.identity.outputs.docs_revision }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -37,6 +39,7 @@ jobs:
       - name: Install locked documentation dependencies
         run: python -m pip install -r requirements.txt
       - name: Build documentation and audit rendered links
+        id: identity
         env:
           REVIEWED_REPOSITORY: ${{ inputs.repository || vars.DOCS_DEPLOY_REPOSITORY }}
           REVIEWED_SITE_URL: ${{ inputs.site_url || vars.DOCS_SITE_URL }}
@@ -44,16 +47,20 @@ jobs:
           PROFILE_SITE_URL: "https://docs.r2kernel.org/"
         run: |
           python - <<'PY'
-          import json, os
+          import json, os, re
           from pathlib import Path
           from urllib.parse import urlsplit
           from mkdocs.config import load_config
           config = load_config('docs/mkdocs.yml')
           ref = os.environ['GITHUB_REF']
+          version = config['extra'].get('r2kernel_version')
+          revision = None
           if os.environ['GITHUB_EVENT_NAME'] != 'pull_request' and (os.environ.get('PUBLICATION_MODE') == 'release-tag' or ref.startswith('refs/tags/')):
-              version = config['extra'].get('r2kernel_version')
-              if not isinstance(version, str) or not version.startswith('v') or ref != 'refs/tags/' + version:
-                  raise SystemExit('Documentation tag must equal the MkDocs release version')
+              if not isinstance(version, str) or not re.fullmatch(r'v[A-Za-z0-9][A-Za-z0-9._+\-]*', version):
+                  raise SystemExit('Documentation requires a valid native MkDocs release version')
+              revision = re.fullmatch(r'refs/tags/docs-' + re.escape(version) + r'-r([1-9][0-9]*)', ref)
+              if ref != 'refs/tags/' + version and revision is None:
+                  raise SystemExit('Documentation tag must equal the MkDocs release version or its exact docs revision')
           text = 'INHERIT: mkdocs.yml\n'
           if os.environ['GITHUB_EVENT_NAME'] != 'pull_request':
               repository = os.environ['REVIEWED_REPOSITORY']
@@ -66,19 +73,23 @@ jobs:
               if os.environ.get('PROFILE_SITE_URL') and site.rstrip('/') != os.environ['PROFILE_SITE_URL'].rstrip('/'):
                   raise SystemExit('Reviewed Pages site differs from the publication profile')
               text += 'site_url: ' + json.dumps(site.rstrip('/') + '/') + '\n'
+          if revision is not None:
+              with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+                  output.write('product_release_tag=' + version + '\n' + 'docs_revision=' + revision[1] + '\n')
           Path('docs/.pages-build.yml').write_text(text)
           PY
           python -m mkdocs build --strict --clean --config-file docs/.pages-build.yml --site-dir "${GITHUB_WORKSPACE}/site"
           python tools/check_rendered_links.py site
       - name: Bind successful build to reviewed hosting destination
-        if: (github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')) && vars.RELEASE_PUBLICATION_APPROVED == 'true'
+        if: (github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/tags/docs-v')) && vars.RELEASE_PUBLICATION_APPROVED == 'true'
         env:
           REVIEWED_REPOSITORY: ${{ inputs.repository || vars.DOCS_DEPLOY_REPOSITORY }}
           REVIEWED_SITE_URL: ${{ inputs.site_url || vars.DOCS_SITE_URL }}
         run: |
           python - <<'PY'
-          import hashlib, json, os
+          import hashlib, json, os, re
           from pathlib import Path
+          from mkdocs.config import load_config
           site = Path('site')
           files = {}
           for path in sorted(site.rglob('*')):
@@ -92,6 +103,13 @@ jobs:
                           source_ref=os.environ['GITHUB_REF'], backend='github-pages-artifact', environment='github-pages',
                           source_commit=os.environ['GITHUB_SHA'], files=files,
                           verification=['strict_mkdocs', 'rendered_links'])
+          ref = os.environ['GITHUB_REF']
+          if ref.startswith('refs/tags/docs-'):
+              version = load_config('docs/mkdocs.yml')['extra'].get('r2kernel_version')
+              revision = re.fullmatch(r'refs/tags/docs-' + re.escape(str(version)) + r'-r([1-9][0-9]*)', ref)
+              if revision is None:
+                  raise SystemExit('Documentation revision differs from the native product version')
+              manifest.update(product_release_tag=version, docs_revision=int(revision[1]))
           output = site / '_publication.json'
           if output.exists():
               raise SystemExit('Reserved Pages publication manifest already exists')
@@ -99,14 +117,14 @@ jobs:
           PY
       - name: Upload reviewed site
         id: artifact
-        if: (github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')) && vars.RELEASE_PUBLICATION_APPROVED == 'true'
+        if: (github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/tags/docs-v')) && vars.RELEASE_PUBLICATION_APPROVED == 'true'
         uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
         with:
           path: site
           name: github-pages-${{ github.run_id }}-${{ github.run_attempt }}
 
   deploy:
-    if: (github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')) && vars.RELEASE_PUBLICATION_APPROVED == 'true'
+    if: (github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/tags/docs-v')) && vars.RELEASE_PUBLICATION_APPROVED == 'true'
     needs: build
     runs-on: ubuntu-24.04
     concurrency:
@@ -126,10 +144,12 @@ jobs:
           ARTIFACT_ID: ${{ needs.build.outputs.artifact_id }}
           EXPECTED_REPOSITORY: ${{ vars.DOCS_DEPLOY_REPOSITORY }}
           EXPECTED_SITE_URL: ${{ vars.DOCS_SITE_URL }}
+          EXPECTED_PRODUCT_RELEASE_TAG: ${{ needs.build.outputs.product_release_tag }}
+          EXPECTED_DOCS_REVISION: ${{ needs.build.outputs.docs_revision }}
         run: |
           gh api --hostname "${GITHUB_SERVER_URL#https://}" "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ARTIFACT_ID}/zip" > pages.zip
           python - <<'PY'
-          import hashlib, io, json, os, tarfile, zipfile
+          import hashlib, io, json, os, re, tarfile, zipfile
           expected_repo = os.environ['EXPECTED_REPOSITORY']
           expected_site = os.environ['EXPECTED_SITE_URL'].rstrip('/') + '/'
           if not expected_repo or expected_repo != os.environ['GITHUB_REPOSITORY']:
@@ -157,6 +177,19 @@ jobs:
                           files[name] = hashlib.sha256(data).hexdigest()
           if not isinstance(manifest, dict) or manifest.get('schema_version') != 1:
               raise SystemExit('Missing reviewed Pages publication manifest')
+          ref = os.environ['GITHUB_REF']
+          if ref.startswith('refs/tags/docs-'):
+              version = os.environ['EXPECTED_PRODUCT_RELEASE_TAG']
+              number = os.environ['EXPECTED_DOCS_REVISION']
+              if (not re.fullmatch(r'v[A-Za-z0-9][A-Za-z0-9._+\-]*', version)
+                      or not re.fullmatch(r'[1-9][0-9]*', number)
+                      or ref != 'refs/tags/docs-' + version + '-r' + number
+                      or manifest.get('product_release_tag') != version
+                      or type(manifest.get('docs_revision')) is not int
+                      or manifest['docs_revision'] != int(number)):
+                  raise SystemExit('Pages artifact differs from the reviewed docs revision/product identity')
+          elif 'product_release_tag' in manifest or 'docs_revision' in manifest:
+              raise SystemExit('Product documentation artifact cannot claim a separate docs revision')
           if (manifest.get('repository') != expected_repo or manifest.get('site_url') != expected_site
                   or manifest.get('source_commit') != os.environ['GITHUB_SHA']
                   or manifest.get('repository_url') != os.environ['GITHUB_SERVER_URL'] + '/' + expected_repo

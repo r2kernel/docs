@@ -36,7 +36,9 @@
   --r2kernel-surface-popover: linear-gradient(180deg, rgba(18, 9, 12, 0.98), rgba(10, 6, 8, 0.96));
   --r2kernel-surface-nav: linear-gradient(180deg, rgba(28, 11, 16, 0.72), rgba(12, 7, 9, 0.56));
   --r2kernel-surface-nav-hover: linear-gradient(180deg, rgba(45, 13, 21, 0.88), rgba(16, 8, 11, 0.74));
-  --r2kernel-surface-code-block: linear-gradient(180deg, rgba(11, 7, 9, 0.98), rgba(8, 5, 7, 0.95));
+  --r2kernel-surface-code-block: #211c22;
+  --r2kernel-code-block-border: #685961;
+  --r2kernel-code-copy-hover: rgba(248, 242, 242, 0.10);
   --r2kernel-surface-card: linear-gradient(180deg, rgba(23, 10, 14, 0.88), rgba(11, 7, 9, 0.74));
   --r2kernel-surface-panel: linear-gradient(180deg, rgba(20, 9, 13, 0.92), rgba(10, 6, 8, 0.84));
   --r2kernel-surface-panel-elevated: linear-gradient(180deg, rgba(25, 10, 15, 0.94), rgba(11, 7, 9, 0.82));
@@ -133,8 +135,8 @@
 
 [data-md-color-scheme="slate"] .md-typeset pre {
   background: var(--r2kernel-surface-code-block);
-  border: 1px solid var(--r2kernel-line-muted);
-  border-radius: var(--r2kernel-radius-lg);
+  border: 1px solid var(--r2kernel-code-block-border);
+  border-radius: var(--r2kernel-radius-xs);
   box-shadow: var(--r2kernel-shadow-code-inset);
 }
 

@@ -32,8 +32,12 @@ GitHub Pages deployment is disabled until the repository variable
 `github-pages` environment with required reviewers and allowed deployment refs.
 Set that protected environment's `DOCS_DEPLOY_REPOSITORY` to the reviewed
 `owner/repository` and `DOCS_SITE_URL` to the exact HTTPS hosting URL.
-Deployment runs on a `v*` tag push or manual dispatch at that tag. The
-tag must equal `extra.r2kernel_version` in `docs/mkdocs.yml`. Configure
+Deployment runs on a product `v*` tag or a docs revision `docs-v*-r*`
+tag push, or manual dispatch at that exact tag. Product tags equal
+`extra.r2kernel_version` in `docs/mkdocs.yml`; docs revision tags use
+`docs-<product-tag>-rN` with positive integer N and retain that native
+product version. Docs revisions require a separately reviewed handoff
+in the release publisher; the product tag remains unchanged. Configure
 repository variables `DOCS_DEPLOY_REPOSITORY` and `DOCS_SITE_URL` for
 tag builds; manual inputs may supply the same reviewed values.
 The successful strict build and rendered-link audit produce a destination-bound

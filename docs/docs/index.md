@@ -279,7 +279,8 @@ release version and affected component so feedback can be tracked in one place.
 
 - fast conceptual onboarding - [R2Kernel in 3 Minutes](overview/r2kernel-in-3-minutes.md)
 - install and first run - [Installation](getting-started/installation.md) and [Quickstart](getting-started/quickstart.md)
-- current support, upgrade and limitations - [Releases](releases/index.md), with the [1.0.0 release notes](releases/1.0.0.md); prereleases are under **Releases → Prerelease archive**
+- current support and limitations - [Support and Compatibility](reference/support-and-compatibility.md)
+- version changes and release downloads - [R2Kernel Releases](https://github.com/r2kernel/r2kernel/releases)
 - robot and runtime-kernel concepts - [Concepts](concepts/concepts-overview.md)
 - host operation and validation - [Operate](operate/operator-overview.md)
 - SDK and tutorial workflows - [Develop](develop/developer-guide.md)

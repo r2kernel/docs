@@ -33,17 +33,6 @@ nav:
       - R2Kernel in 3 Minutes: overview/r2kernel-in-3-minutes.md
       - Installation: getting-started/installation.md
       - Quickstart: getting-started/quickstart.md
-  - Releases:
-      - Overview: releases/index.md
-      - Current — 1.0.0: releases/1.0.0.md
-      - Prerelease archive:
-          - RC11: releases/1.0.0rc11.md
-          - RC10: releases/1.0.0rc10.md
-          - RC9: releases/1.0.0rc9.md
-          - RC8: releases/1.0.0rc8.md
-          - RC7: releases/1.0.0rc7.md
-          - RC6: releases/1.0.0rc6.md
-          - RC5: releases/1.0.0rc5.md
   - Concepts:
       - Concepts Overview: concepts/concepts-overview.md
       - Design Philosophy: overview/design-philosophy.md
@@ -95,6 +84,8 @@ nav:
       - ROS 2 Integration: develop/ros-2-integration.md
   - Reference:
       - Reference Overview: reference/reference-overview.md
+      - Support and Compatibility: reference/support-and-compatibility.md
+      - Installation Reference: reference/installation-reference.md
       - API:
           - API Reference: reference/api-reference.md
           - GNSS Source Control: reference/gnss-source-control.md

@@ -145,5 +145,7 @@ Continue with [Installation](../getting-started/installation.md), then
 [Quickstart](../getting-started/quickstart.md) for the first installed run.
 For deeper concepts, use
 [Robot, Application, And Deployment](../concepts/robot-application-deployment-model.md)
-or [Design Philosophy](design-philosophy.md). Current compatibility and limits
-are collected in the [current release notes](../releases/index.md).
+or [Design Philosophy](design-philosophy.md). Check
+[Support and Compatibility](../reference/support-and-compatibility.md) before
+selecting a deployment target. Version changes and release downloads are in
+[R2Kernel Releases](https://github.com/r2kernel/r2kernel/releases).

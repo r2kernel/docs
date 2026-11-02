@@ -66,8 +66,8 @@ installed prefix.
 ### Timing Results Are Workload-Specific
 
 A functional smoke is not a 1 kHz periodic qualification, and the release
-carries no hard-real-time approval; see the known limitations in its
-[release notes](../releases/index.md).
+carries no hard-real-time approval; see
+[Support and Compatibility](../reference/support-and-compatibility.md).
 The historical local C++ raw-eight-byte profile does not qualify Python,
 cross-host Control or a different application.
 

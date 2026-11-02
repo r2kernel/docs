@@ -28,6 +28,8 @@
   --r2kernel-radius-2xl: 1.25rem;
   --r2kernel-radius-3xl: 1.35rem;
   --r2kernel-radius-pill: 999px;
+  --r2kernel-code-copy-size: 1.4rem;
+  --r2kernel-code-copy-gutter: 2rem;
 }
 
 .r2kernel-hero {
@@ -257,6 +259,85 @@
 .md-typeset .mermaid {
   margin: 1.2rem 0 1.5rem;
   text-align: center;
+}
+
+/* Reserve a fixed side gutter so compact controls never cover scrolling code. */
+.md-typeset pre {
+  position: relative;
+}
+
+.md-typeset pre:has(.md-code__nav) {
+  min-height: calc(var(--r2kernel-code-copy-size) + 0.4rem + 2px);
+  padding-inline-end: var(--r2kernel-code-copy-gutter);
+}
+
+.md-typeset pre > code {
+  padding: 0.6rem 0.75rem;
+}
+
+.md-typeset .md-code__nav {
+  position: absolute;
+  top: 0.2rem;
+  right: 0.2rem;
+  justify-content: flex-end;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+
+.md-typeset .md-code__button[data-md-type="copy"] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--r2kernel-code-copy-size);
+  height: var(--r2kernel-code-copy-size);
+  min-width: var(--r2kernel-code-copy-size);
+  min-height: var(--r2kernel-code-copy-size);
+  padding: 0;
+  color: var(--r2kernel-muted-strong);
+  background: transparent;
+  border: none;
+  border-radius: var(--r2kernel-radius-xs);
+}
+
+.md-typeset .md-code__button[data-md-type="copy"]::after {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+@media (hover: hover) {
+  .md-typeset .md-code__button[data-md-type="copy"]:hover {
+    color: var(--r2kernel-ink);
+    background: var(--r2kernel-code-copy-hover);
+  }
+}
+
+.md-typeset .md-code__button[data-md-type="copy"]:focus-visible,
+.md-typeset .md-code__button[data-md-type="copy"].focus-visible {
+  color: var(--r2kernel-ink);
+  background: var(--r2kernel-code-copy-hover);
+  outline: 2px solid var(--r2kernel-accent-warm);
+  outline-offset: 2px;
+}
+
+@media (pointer: coarse) {
+  :root {
+    --r2kernel-code-copy-size: 2.2rem;
+    --r2kernel-code-copy-gutter: 2.6rem;
+  }
+}
+
+.md-dialog {
+  background: var(--r2kernel-panel-strong);
+  border: 1px solid var(--r2kernel-border-strong);
+  border-radius: var(--r2kernel-radius-xs);
+}
+
+@media print {
+  .md-typeset .md-code__nav {
+    display: none;
+  }
 }
 
 .md-typeset .mermaid svg {

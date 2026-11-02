@@ -489,7 +489,10 @@
       ? options.primaryScrollTop
       : null;
 
+    // popstate has already changed location, which may no longer describe the
+    // rendered content. Only link clicks can take this same-page shortcut.
     if (
+      push &&
       normalizeDocPath(url) === normalizeDocPath(window.location.href) &&
       url.hash &&
       url.pathname === window.location.pathname &&
@@ -520,6 +523,10 @@
       pendingPrimaryScrollTop = preservePrimaryScroll;
       restorePrimaryScrollTop();
       scrollMainViewport(finalUrl);
+      // The shell replaces content without Material's instant navigation.
+      // Refresh its document stream so new code blocks get copy controls and
+      // components release their subscriptions to the previous content.
+      window.document$.next(document);
       notifyPageRendered();
     } catch (error) {
       if (error && error.name === "AbortError") {
