@@ -1,0 +1,4 @@
+# Pages deployment metadata; this file is not served as a public asset.
+# Keep the Federation SSH example byte-exact without changing zone-wide policy.
+https://docs.r2kernel.org/tutorials/advanced-federation/
+  Cache-Control: public, max-age=0, must-revalidate, no-transform

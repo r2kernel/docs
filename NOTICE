@@ -1,0 +1,64 @@
+R2Kernel Open Source Notices
+
+R2Kernel public source, SDK artifacts, tutorials, demo source, documentation,
+and public specs are distributed under the Apache License 2.0, except separately
+identified third-party material. The proprietary runtime is not covered by that
+grant; its release includes a separate Runtime License.
+
+Copyright (c) R2Kernel contributors.
+
+Bundled third-party components:
+
+- Runtime, installer, Python wheel, and C++ SDK binary dependencies
+  Exact upstream license and copyright texts for the locked Rust runtime and
+  installer graphs, the shipped Svelte/Vite/esbuild frontend helpers, xterm.js
+  browser terminal packages, yaml-cpp, and the Rust standard library are
+  inventoried in licenses/third-party/THIRD-PARTY-DEPENDENCIES.json and reproduced in
+  licenses/third-party/THIRD-PARTY-NOTICES.txt. The original upstream files are
+  retained under licenses/third-party/by-package/ and
+  licenses/third-party/rust-toolchain/. Linux release packaging includes the
+  consolidated notice and originals in the runtime and C++ archives and the
+  Python wheel; the installer release manifest exposes the consolidated notice
+  for review and download. Rust standard-library notices are pinned to and
+  checked against the compiler's actual sysroot used for each target build.
+  The Linux dynamic loader and system C runtime are target-OS dependencies and
+  are not copied into R2Kernel release artifacts; their distribution and license
+  documents are supplied by the operating system. The Rust `libc` crate remains
+  separately listed among the bundled Cargo dependencies.
+
+- Documentation website assets
+  Notices for the rendered documentation theme, bundled JavaScript, search,
+  lightbox, icons, and externally loaded Mermaid asset are published with the
+  docs source at docs/docs/reference/third-party-notices.md and their exact
+  source texts under docs/docs/assets/licenses/third-party/. The rendered page
+  and assets are available at reference/third-party-notices/ and
+  assets/licenses/third-party/ in the public documentation site.
+
+- Noto Serif (documentation font assets)
+  Copyright 2022 The Noto Project Authors
+  (https://github.com/notofonts/latin-greek-cyrillic).
+  Distributed under the SIL Open Font License 1.1, not Apache-2.0. The full
+  notice and license accompany the fonts at docs/docs/assets/fonts/OFL.txt in the
+  public docs repository and assets/fonts/OFL.txt in the rendered site.
+
+- yaml-cpp
+  The Linux C++ SDK release artifact may include yaml-cpp as an internal static
+  dependency. yaml-cpp is distributed under the MIT License. See
+  licenses/third-party/yaml-cpp-MIT.txt in the public source tree,
+  LICENSE-yaml-cpp-MIT.txt in release assets, or the installed licenses
+  directory for the full license text.
+
+Python SDK environment dependencies:
+
+The R2Kernel Python SDK declares runtime dependencies that are resolved by the
+user's Python package environment rather than bundled into the R2Kernel installer
+payload. These dependencies include:
+
+- numpy, distributed under a BSD license.
+- scipy, distributed under a BSD license.
+- PyYAML, distributed under the MIT License.
+- posix_ipc, distributed under a BSD-style license on supported non-Windows
+  platforms.
+
+Refer to each dependency's installed package metadata for the authoritative
+license text used by the resolved version.

@@ -1,0 +1,23 @@
+# Generated caches and build products
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.venv/
+venv/
+env/
+build/
+dist/
+site/
+target/
+node_modules/
+.wrangler/
+*.token
+cloudflare.token
+
+# Local runtime outputs
+**/log/
+**/userdata/
+config.override.yaml

@@ -1,0 +1,144 @@
+site_name: R2Kernel Docs
+site_description: Runtime kernel documentation for software-defined robotics with R2Kernel.
+site_url: https://docs.r2kernel.org/
+extra:
+  r2kernel_version: v1.0.0
+theme:
+  name: material
+  custom_dir: overrides
+  font: false
+  palette:
+    - scheme: slate
+      primary: red
+      accent: red
+  features:
+    - navigation.path
+    - navigation.top
+    - navigation.tracking
+    - toc.follow
+    - content.code.copy
+    - search.suggest
+    - search.highlight
+extra_css:
+  - styles/layout.css
+  - styles/color.css
+  - styles/font.css
+extra_javascript:
+  - javascripts/navigation.js
+  - https://cdn.jsdelivr.net/npm/mermaid@10.9.5/dist/mermaid.min.js
+  - javascripts/mermaid-init.js
+nav:
+  - Start:
+      - What Is R2Kernel: index.md
+      - R2Kernel in 3 Minutes: overview/r2kernel-in-3-minutes.md
+      - Installation: getting-started/installation.md
+      - Quickstart: getting-started/quickstart.md
+  - Releases:
+      - Overview: releases/index.md
+      - Current — 1.0.0: releases/1.0.0.md
+      - Prerelease archive:
+          - RC11: releases/1.0.0rc11.md
+          - RC10: releases/1.0.0rc10.md
+          - RC9: releases/1.0.0rc9.md
+          - RC8: releases/1.0.0rc8.md
+          - RC7: releases/1.0.0rc7.md
+          - RC6: releases/1.0.0rc6.md
+          - RC5: releases/1.0.0rc5.md
+  - Concepts:
+      - Concepts Overview: concepts/concepts-overview.md
+      - Design Philosophy: overview/design-philosophy.md
+      - Robot, Application, And Deployment: concepts/robot-application-deployment-model.md
+      - Subsystems, Roles, And Interfaces: architecture/subsystems-and-contracts.md
+      - Subsystem Binding Model: concepts/subsystem-binding-model.md
+      - Spatial Model And Frame Graph: concepts/spatial-model.md
+      - Subsystem Lifecycle: architecture/subsystem-lifecycle.md
+      - Communication Surfaces: architecture/communication-surfaces.md
+      - Managed Packages and App Runtime: architecture/managed-packages-and-app-runtime.md
+      - Resource Authority: architecture/resource-authority.md
+      - Federation and Host Control: architecture/federation-and-host-control.md
+      - Federation Time Model: architecture/federation-time-model.md
+      - Differentiators: concepts/differentiators.md
+  - Operate:
+      - Operator Overview: operate/operator-overview.md
+      - Runtime Configuration: operate/runtime-configuration.md
+      - CLI Tools: operate/cli-tools.md
+      - Web Console Manual: operate/web-console-manual.md
+      - Time Sync Operations: operate/time-sync-operations.md
+      - Web and API Security: operate/web-and-api-security.md
+      - Resource Control: operate/resource-control.md
+      - Real-Time Scheduling: operate/realtime-scheduling.md
+      - Container Deployment: operate/container-deployment.md
+      - Deployment Checks: operate/deployment-checks.md
+      - Troubleshooting: operate/troubleshooting.md
+      - Product Frontend Modes: operate/product-frontend-modes.md
+  - Develop:
+      - Developer Guide: develop/developer-guide.md
+      - Cleaner Robot Tutorial: tutorials/tutorial.md
+      - GNSS Source And Localization: tutorials/gnss-localization.md
+      - Build Cleaner Robot:
+          - "1. Start Simulation World": tutorials/start-simulation-world.md
+          - "2. Build Gateway Subsystem": tutorials/build-gateway-subsystem.md
+          - "3. Add Component Subsystems": tutorials/add-component-subsystems.md
+          - "4. Define Platform": tutorials/define-platform.md
+          - "5. Run Applications": tutorials/run-applications.md
+      - Advanced Cleaner Topics:
+          - Subsystem Packages: tutorials/advanced-subsystem-packages.md
+          - Teleop App Frontend: tutorials/advanced-websocket-facade.md
+          - Resource Policy: tutorials/advanced-resource-policy.md
+          - Federation: tutorials/advanced-federation.md
+      - API:
+          - API Guide: api/api-overview.md
+          - Subsystem SDK Guide: api/subsystem-sdk-api.md
+          - Host Control REST Guide: api/host-control-rest-api.md
+          - Host Control WebSocket Guide: api/host-control-websocket-api.md
+          - Typed Payload and Codec Guide: api/typed-payload-and-codec.md
+      - ROS 2 Integration: develop/ros-2-integration.md
+  - Reference:
+      - Reference Overview: reference/reference-overview.md
+      - API:
+          - API Reference: reference/api-reference.md
+          - GNSS Source Control: reference/gnss-source-control.md
+          - Subsystem SDK Reference: reference/subsystem-sdk-reference.md
+          - Host Control REST Routes: reference/host-control-rest-routes.md
+          - Host Control WebSocket Messages: reference/host-control-websocket-messages.md
+          - WebSocket Facade: reference/websocket-facade.md
+      - Spec:
+          - Spec Overview: spec/spec-overview.md
+          - Built-In Message Families: spec/built-in-message-families.md
+          - Message Index: spec/message-index.md
+          - Endpoint Shape: spec/endpoint-shape.md
+          - Subsystem Binding Manifests: spec/subsystem-binding-manifests.md
+          - Robot/Application/Deployment Manifests: spec/robot-application-deployment-manifests.md
+          - API Contract Model: spec/api-contract-model.md
+          - Control Cycles and Typed Streams: spec/control-cycles-and-streaming.md
+          - API Contract Reference: spec/api-contract-reference.md
+          - Contracts And Components: spec/contracts-and-components.md
+          - Components: spec/components.md
+          - Data Types And Binary Encoding: reference/data-types-and-binary-encoding.md
+          - Message Theme Taxonomy: reference/message-theme-taxonomy.md
+          - Stability Model: spec/stability-model.md
+          - Domain Coverage: spec/domain-coverage.md
+          - Versioning and Resolution: spec/versioning-resolution.md
+      - Runtime Tables:
+          - Runtime Layout: reference/runtime-layout.md
+          - Manager and Device Authorization: reference/resource-authority.md
+          - Package Layout: reference/package-layout.md
+          - Distribution And Licensing: reference/distribution-and-licensing.md
+          - Third-Party Notices: reference/third-party-notices.md
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - pymdownx.blocks.caption
+  - pymdownx.details
+  - pymdownx.highlight
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_div_format
+  - toc:
+      permalink: false
+plugins:
+  - search
+  - glightbox

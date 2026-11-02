@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block htmltitle %}
+  <title>{% if page and page.title %}{{ page.title }} - {% endif %}{{ config.site_name }}</title>
+{% endblock %}
+
+{% block extrahead %}
+  {{ super() }}
+  <script>
+    (function () {
+      var defaults = {
+        Start: true,
+        Concepts: false,
+        Operate: false,
+        Develop: false,
+        Reference: false,
+        Performance: false
+      };
+      var navConfig = {
+        storageKey: "r2kernel-primary-nav-state-v2",
+        defaults: defaults
+      };
+
+      document.documentElement.classList.add("r2kernel-nav-pending");
+      window.__r2kernelNavConfig = navConfig;
+
+      try {
+        window.__r2kernelNavState = Object.assign(
+          {},
+          defaults,
+          JSON.parse(localStorage.getItem(navConfig.storageKey) || "{}")
+        );
+      } catch (error) {
+        window.__r2kernelNavState = defaults;
+      }
+    })();
+  </script>
+{% endblock %}
+
+{% block header %}
+{% set homepage_href = nav.homepage.url | url %}
+{% set r2kernel_version = config.extra.r2kernel_version if config.extra and config.extra.r2kernel_version else none %}
+<header class="md-header r2kernel-header" data-md-component="header">
+  <div class="md-header__inner r2kernel-header__inner">
+    <div class="r2kernel-header__mobile">
+      <label class="md-header__button md-icon" for="__drawer" aria-label="Menu">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+      </label>
+      <a href="{{ homepage_href }}" class="r2kernel-brand">
+        <span class="r2kernel-brand__text">
+          <strong>R2Kernel™</strong>
+          <span>Runtime Kernel for Robotics</span>
+        </span>
+      </a>
+      {% if r2kernel_version %}
+        <span class="r2kernel-version-badge" title="Documentation version">{{ r2kernel_version }}</span>
+      {% endif %}
+    </div>
+
+    <div class="r2kernel-header__desktop">
+      <div class="r2kernel-header__left">
+        <a href="{{ homepage_href }}" class="r2kernel-brand">
+          <span class="r2kernel-brand__text">
+            <strong>R2Kernel™</strong>
+            <span>Runtime Kernel for Robotics</span>
+          </span>
+        </a>
+        {% if r2kernel_version %}
+          <span class="r2kernel-version-badge" title="Documentation version">{{ r2kernel_version }}</span>
+        {% endif %}
+      </div>
+
+      <div class="r2kernel-header__center">
+        <nav class="r2kernel-breadcrumbs" aria-label="Breadcrumb">
+          {% for parent in page.ancestors | reverse %}
+            {% if parent.url != nav.homepage.url or not parent.url %}
+              <a href="{{ parent.url | url if parent.url else '#' }}">{{ parent.title }}</a>
+              <span class="sep">/</span>
+            {% endif %}
+          {% endfor %}
+          {% if page %}<span class="current">{{ page.title }}</span>{% endif %}
+        </nav>
+      </div>
+
+      <div class="r2kernel-header__right">
+        <div class="md-search r2kernel-search" data-md-component="search">
+          <form class="md-search__form" name="search">
+            <label class="md-search__icon md-icon" for="__search" aria-label="Search">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M9.5 3a6.5 6.5 0 015.2 10.5l4.4 4.4-1.4 1.4-4.4-4.4A6.5 6.5 0 119.5 3m0 2a4.5 4.5 0 100 9 4.5 4.5 0 000-9z"/></svg>
+            </label>
+            <input type="text" class="md-search__input" placeholder="Search R2Kernel docs" aria-label="Search R2Kernel docs" data-md-component="search-query" required>
+            <button type="submit" class="md-search__icon md-icon" data-md-component="search-reset" aria-label="Reset search">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M9.5 3a6.5 6.5 0 015.2 10.5l4.4 4.4-1.4 1.4-4.4-4.4A6.5 6.5 0 119.5 3m0 2a4.5 4.5 0 100 9 4.5 4.5 0 000-9z"/></svg>
+            </button>
+          </form>
+          <div class="md-search__output">
+            <div class="md-search__scrollwrap" data-md-scrollfix>
+              <div class="md-search-result" data-md-component="search-result">
+                <div class="md-search-result__meta"></div>
+                <ol class="md-search-result__list"></ol>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+{% endblock %}

@@ -1,0 +1,209 @@
+name: Documentation
+
+on:
+  pull_request:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      repository:
+        description: Reviewed owner/repository hosting destination
+        required: true
+        type: string
+      site_url:
+        description: Reviewed HTTPS Pages site URL (including repository path)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    outputs:
+      artifact_id: ${{ steps.artifact.outputs.artifact_id }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - name: Install locked documentation dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Build documentation and audit rendered links
+        env:
+          REVIEWED_REPOSITORY: ${{ inputs.repository || vars.DOCS_DEPLOY_REPOSITORY }}
+          REVIEWED_SITE_URL: ${{ inputs.site_url || vars.DOCS_SITE_URL }}
+          PUBLICATION_MODE: release-tag
+          PROFILE_SITE_URL: "https://docs.r2kernel.org/"
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          from urllib.parse import urlsplit
+          from mkdocs.config import load_config
+          config = load_config('docs/mkdocs.yml')
+          ref = os.environ['GITHUB_REF']
+          if os.environ['GITHUB_EVENT_NAME'] != 'pull_request' and (os.environ.get('PUBLICATION_MODE') == 'release-tag' or ref.startswith('refs/tags/')):
+              version = config['extra'].get('r2kernel_version')
+              if not isinstance(version, str) or not version.startswith('v') or ref != 'refs/tags/' + version:
+                  raise SystemExit('Documentation tag must equal the MkDocs release version')
+          text = 'INHERIT: mkdocs.yml\n'
+          if os.environ['GITHUB_EVENT_NAME'] != 'pull_request':
+              repository = os.environ['REVIEWED_REPOSITORY']
+              site = os.environ['REVIEWED_SITE_URL']
+              url = urlsplit(site)
+              if repository != os.environ['GITHUB_REPOSITORY']:
+                  raise SystemExit('Reviewed Pages repository does not match this workflow repository')
+              if url.scheme != 'https' or not url.hostname or url.username or url.password or url.query or url.fragment:
+                  raise SystemExit('A reviewed HTTPS Pages site URL is required')
+              if os.environ.get('PROFILE_SITE_URL') and site.rstrip('/') != os.environ['PROFILE_SITE_URL'].rstrip('/'):
+                  raise SystemExit('Reviewed Pages site differs from the publication profile')
+              text += 'site_url: ' + json.dumps(site.rstrip('/') + '/') + '\n'
+          Path('docs/.pages-build.yml').write_text(text)
+          PY
+          python -m mkdocs build --strict --clean --config-file docs/.pages-build.yml --site-dir "${GITHUB_WORKSPACE}/site"
+          python tools/check_rendered_links.py site
+      - name: Bind successful build to reviewed hosting destination
+        if: (github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')) && vars.RELEASE_PUBLICATION_APPROVED == 'true'
+        env:
+          REVIEWED_REPOSITORY: ${{ inputs.repository || vars.DOCS_DEPLOY_REPOSITORY }}
+          REVIEWED_SITE_URL: ${{ inputs.site_url || vars.DOCS_SITE_URL }}
+        run: |
+          python - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          site = Path('site')
+          files = {}
+          for path in sorted(site.rglob('*')):
+              if path.is_symlink():
+                  raise SystemExit('Pages artifact cannot contain symlinks')
+              if path.is_file():
+                  files[path.relative_to(site).as_posix()] = hashlib.sha256(path.read_bytes()).hexdigest()
+          manifest = dict(schema_version=1, repository=os.environ['REVIEWED_REPOSITORY'],
+                          site_url=os.environ['REVIEWED_SITE_URL'].rstrip('/') + '/',
+                          repository_url=os.environ['GITHUB_SERVER_URL'] + '/' + os.environ['REVIEWED_REPOSITORY'],
+                          source_ref=os.environ['GITHUB_REF'], backend='github-pages-artifact', environment='github-pages',
+                          source_commit=os.environ['GITHUB_SHA'], files=files,
+                          verification=['strict_mkdocs', 'rendered_links'])
+          output = site / '_publication.json'
+          if output.exists():
+              raise SystemExit('Reserved Pages publication manifest already exists')
+          output.write_text(json.dumps(manifest, sort_keys=True) + '\n')
+          PY
+      - name: Upload reviewed site
+        id: artifact
+        if: (github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')) && vars.RELEASE_PUBLICATION_APPROVED == 'true'
+        uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
+        with:
+          path: site
+          name: github-pages-${{ github.run_id }}-${{ github.run_attempt }}
+
+  deploy:
+    if: (github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')) && vars.RELEASE_PUBLICATION_APPROVED == 'true'
+    needs: build
+    runs-on: ubuntu-24.04
+    concurrency:
+      group: github-pages
+      cancel-in-progress: false
+    permissions:
+      actions: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Validate exact artifact and protected hosting identity before submission
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_ID: ${{ needs.build.outputs.artifact_id }}
+          EXPECTED_REPOSITORY: ${{ vars.DOCS_DEPLOY_REPOSITORY }}
+          EXPECTED_SITE_URL: ${{ vars.DOCS_SITE_URL }}
+        run: |
+          gh api --hostname "${GITHUB_SERVER_URL#https://}" "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ARTIFACT_ID}/zip" > pages.zip
+          python - <<'PY'
+          import hashlib, io, json, os, tarfile, zipfile
+          expected_repo = os.environ['EXPECTED_REPOSITORY']
+          expected_site = os.environ['EXPECTED_SITE_URL'].rstrip('/') + '/'
+          if not expected_repo or expected_repo != os.environ['GITHUB_REPOSITORY']:
+              raise SystemExit('Protected Pages repository identity is missing or mismatched')
+          if not os.environ['EXPECTED_SITE_URL']:
+              raise SystemExit('Protected reviewed Pages site URL is required')
+          with zipfile.ZipFile('pages.zip') as archive:
+              if archive.namelist() != ['artifact.tar']:
+                  raise SystemExit('Unexpected Pages artifact archive')
+              with tarfile.open(fileobj=io.BytesIO(archive.read('artifact.tar'))) as tar:
+                  files = {}
+                  manifest = None
+                  for member in tar:
+                      name = member.name.removeprefix('./')
+                      if member.isdir():
+                          continue
+                      if not member.isfile() or name.startswith('/') or '..' in name.split('/') or name in files:
+                          raise SystemExit('Unsafe or duplicate Pages artifact entry')
+                      data = tar.extractfile(member).read()
+                      if name == '_publication.json':
+                          if manifest is not None:
+                              raise SystemExit('Duplicate publication manifest')
+                          manifest = json.loads(data)
+                      else:
+                          files[name] = hashlib.sha256(data).hexdigest()
+          if not isinstance(manifest, dict) or manifest.get('schema_version') != 1:
+              raise SystemExit('Missing reviewed Pages publication manifest')
+          if (manifest.get('repository') != expected_repo or manifest.get('site_url') != expected_site
+                  or manifest.get('source_commit') != os.environ['GITHUB_SHA']
+                  or manifest.get('repository_url') != os.environ['GITHUB_SERVER_URL'] + '/' + expected_repo
+                  or manifest.get('source_ref') != os.environ['GITHUB_REF']
+                  or manifest.get('backend') != 'github-pages-artifact'
+                  or manifest.get('environment') != 'github-pages'
+                  or manifest.get('verification') != ['strict_mkdocs', 'rendered_links']
+                  or manifest.get('files') != files):
+              raise SystemExit('Pages artifact differs from the reviewed build/destination contract')
+          print('Exact artifact and reviewed destination validated locally; live hosted content is not checked.')
+          PY
+      - name: Configure actual Pages destination
+        id: pages
+        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+        with:
+          enablement: false
+      - name: Compare actual Pages hosting configuration
+        env:
+          EXPECTED_SITE_URL: ${{ vars.DOCS_SITE_URL }}
+          ACTUAL_SITE_URL: ${{ steps.pages.outputs.base_url }}
+        run: |
+          python - <<'PY'
+          import os
+          from urllib.parse import urlsplit
+          def destination(value, *, reviewed):
+              try:
+                  url = urlsplit(value)
+                  port = url.port
+              except ValueError:
+                  raise SystemExit('Invalid Pages hosting URL')
+              schemes = ('https',) if reviewed else ('http', 'https')
+              if (url.scheme not in schemes or not url.hostname or port == 0
+                      or url.username is not None or url.password is not None
+                      or any(c.isspace() for c in value) or any(c in value for c in ('?', '#', '\\'))):
+                  raise SystemExit('Invalid Pages hosting URL')
+              return url.netloc.lower(), url.path.rstrip('/')
+          expected = os.environ['EXPECTED_SITE_URL']
+          actual = os.environ['ACTUAL_SITE_URL']
+          if destination(expected, reviewed=True) != destination(actual, reviewed=False):
+              raise SystemExit('Actual Pages site differs from the protected reviewed site URL')
+          if urlsplit(actual).scheme == 'http':
+              print('Pages destination matches; certificate/HTTPS verification is still required before release promotion.')
+          PY
+      - name: Submit approved documentation artifact
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
+        with:
+          artifact_name: github-pages-${{ github.run_id }}-${{ github.run_attempt }}
+      - name: Report submission boundary
+        run: echo 'Pages backend deployment completed; this workflow does not perform live-host content readback.'

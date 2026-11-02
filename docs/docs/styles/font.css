@@ -1,0 +1,141 @@
+@font-face {
+  font-family: "Noto Serif";
+  src: url("../assets/fonts/NotoSerif-Regular.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Noto Serif";
+  src: url("../assets/fonts/NotoSerif-Bold.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
+:root {
+  --r2kernel-font-serif: "Noto Serif", serif;
+  --r2kernel-font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+
+html,
+body,
+button,
+input,
+select,
+textarea,
+.md-header,
+.md-nav,
+.md-typeset,
+.md-search__input {
+  font-family: var(--r2kernel-font-serif);
+}
+
+code,
+pre,
+kbd,
+samp,
+.md-typeset code,
+.md-typeset pre code {
+  font-family: var(--r2kernel-font-mono) !important;
+}
+
+.md-nav--primary,
+.md-nav--primary .md-nav__link,
+.md-nav--primary .md-nav__title,
+.md-nav--primary .md-nav__item,
+.md-nav--primary .md-nav__list {
+  font-size: clamp(15px, 0.64vw, 17px) !important;
+  line-height: 1.6 !important;
+}
+
+.md-nav--primary > .md-nav__list > .md-nav__item > .md-nav__link,
+.md-nav--primary > .md-nav__list > .md-nav__item--nested > .md-nav__link {
+  font-weight: 700 !important;
+  letter-spacing: -0.01em;
+}
+
+.md-nav--secondary,
+.md-nav--secondary .md-nav__link {
+  font-size: clamp(15px, 0.64vw, 17px) !important;
+  line-height: 1.2 !important;
+}
+
+.md-typeset {
+  font-size: clamp(15px, 0.64vw, 17px) !important;
+  line-height: 1.68 !important;
+  letter-spacing: -0.006em !important;
+}
+
+.md-typeset p,
+.md-typeset li,
+.md-typeset blockquote {
+  word-break: keep-all;
+}
+
+/* Keep the content column width policy in layout.css. Do not narrow prose
+   independently, or pages with mostly paragraphs become visually narrower
+   than pages dominated by code blocks or tables. */
+.md-typeset :is(p, ul, ol, dl, blockquote, pre, .highlight, table, .admonition, details) {
+  max-width: none;
+}
+
+.md-typeset h1,
+.md-typeset h2,
+.md-typeset h3,
+.md-typeset h4,
+.md-typeset h5,
+.md-typeset h6 {
+  font-family: var(--r2kernel-font-serif);
+  color: var(--r2kernel-ink);
+  font-weight: 700 !important;
+  letter-spacing: -0.03em !important;
+}
+
+.md-typeset h1 {
+  font-size: clamp(1.78rem, 1.5rem + 0.68vw, 2.35rem) !important;
+  line-height: 1.12 !important;
+}
+
+.md-typeset h2 {
+  font-size: clamp(1.24rem, 1.1rem + 0.28vw, 1.5rem) !important;
+  line-height: 1.2 !important;
+}
+
+.md-typeset h3 {
+  font-size: clamp(1.08rem, 1rem + 0.16vw, 1.22rem) !important;
+  line-height: 1.26 !important;
+}
+
+.md-typeset h4 {
+  font-size: 1rem !important;
+  line-height: 1.34 !important;
+}
+
+.md-typeset .headerlink,
+.md-typeset a.headerlink {
+  display: none !important;
+}
+
+.md-typeset .r2kernel-hero .eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.14em !important;
+  font-size: 0.74rem !important;
+  color: var(--r2kernel-accent-strong);
+  margin-bottom: 0.75rem;
+}
+
+.md-typeset .r2kernel-hero h1,
+.md-typeset .r2kernel-hero h2 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  max-width: 15ch;
+}
+
+.md-typeset .r2kernel-hero .lead {
+  font-size: clamp(15px, 0.64vw, 17px);
+  line-height: 1.7;
+  color: var(--r2kernel-text);
+  max-width: 80ch;
+}
