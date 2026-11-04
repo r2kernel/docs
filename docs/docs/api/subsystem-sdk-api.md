@@ -509,15 +509,22 @@ public helpers such as `open_udp_socket`, `open_tcp_socket`,
 
 Managed package frontend backends use a narrower helper. If `package.yaml` declares
 `frontend.context.api` or `frontend.context.ws`, launch resolves that context
-into a loopback listener grant. The package process opens that listener through
-the broker.
+into a loopback listener grant. The broker keeps the TCP listener and returns
+an `AF_UNIX` listener to the package. It relays each accepted TCP connection to
+that Unix listener, so the package never receives a reusable IP descriptor.
 
 ```python
 from r2kernel.core import ResourceBrokerClient
 
-api_listener = ResourceBrokerClient().open_frontend_tcp_listener(kind="api").socket
-ws_listener = ResourceBrokerClient().open_frontend_tcp_listener(kind="ws").socket
+api_listener = ResourceBrokerClient().open_frontend_tcp_listener(kind="api")
+# Give api_listener.socket to the HTTP/WebSocket server implementation.
 ```
+
+If `frontend.context.api` and `frontend.context.ws` resolve to the same host and
+port, request one listener and let the backend serve both HTTP and WebSocket
+paths. Do not request a second listener for that endpoint. Use `kind="ws"`
+for a WebSocket-only backend; request separate `api` and `ws` listeners only
+when their declared endpoints use different addresses or ports.
 
 C++ packages use `r2kernel::core::ResourceBrokerClient` from
 `r2kernel/core/resource_broker_client.hpp` with option structs:
@@ -526,12 +533,21 @@ C++ packages use `r2kernel::core::ResourceBrokerClient` from
 r2kernel::core::FrontendTcpListenerOptions api;
 api.kind = "api";
 auto listener = r2kernel::core::ResourceBrokerClient().open_frontend_tcp_listener(api);
-// listener.socket is the descriptor; listener.close() closes it.
+// listener.socket is an AF_UNIX listening descriptor; listener.close() closes it.
 ```
 
 The browser still connects to the control backend same-origin proxy. The package
-backend serves the accepted listener socket; it must not bind a separate
-frontend port directly under brokered network sandboxing.
+backend accepts connections from the returned Unix listener. Its server must
+support an existing listener and Unix peer addresses. Read the TCP endpoint
+from the broker metadata rather than unpacking `getsockname()` as an IP/port
+pair. The package must not bind a separate frontend TCP port directly.
+
+After stopping the frontend server, call the returned result's `close()` method
+(`api_listener.close()` in Python or `listener.close()` in C++). It shuts down
+the Unix listener before closing its descriptor, allowing the broker to stop
+the TCP endpoint and relays. Closing only the raw descriptor does not notify
+the broker immediately because the broker retains a duplicate. Ending the
+lease also closes its listeners and relays.
 
 For resource helper methods, see
 [Subsystem SDK Reference](../reference/subsystem-sdk-reference.md#resource-broker-client).
@@ -549,15 +565,19 @@ import subprocess
 from r2kernel.core import ResourceBrokerClient
 from r2kernel.core.resource import INHERITED_FDS_ENV, encode_inherited_fds
 
-listener = ResourceBrokerClient().open_frontend_tcp_listener(kind="api").socket
-fd = listener.fileno()
+opened = ResourceBrokerClient().open_frontend_tcp_listener(kind="api")
+fd = opened.socket.fileno()
 env = {**os.environ, INHERITED_FDS_ENV: encode_inherited_fds({"frontend.api": fd})}
-subprocess.Popen(["python3", "worker.py"], env=env, pass_fds=(fd,))
+worker = subprocess.Popen(["python3", "worker.py"], env=env, pass_fds=(fd,))
+try:
+    worker.wait()
+finally:
+    opened.close()
 ```
 
 The child obtains and validates the descriptor with
 `inherited_socket(kind, expect)` (also `ResourceBrokerClient.inherited_fd`), where
-`expect` gives `family` (`inet`, `inet6`, `can`), `type` (`stream`, `dgram`,
+`expect` gives `family` (`unix`, `inet`, `inet6`, `can`), `type` (`stream`, `dgram`,
 `raw`), `listening` and optionally `port`. It checks the environment value, that
 the descriptor is a socket, and its family, type, listening state and bound
 port, in that order. A mismatch raises `InheritedFdError` naming the failed step
@@ -565,6 +585,12 @@ and leaves the descriptor unchanged; there is no fallback to a broker request.
 On success the descriptor gets `FD_CLOEXEC`. The C++ SDK provides
 `r2kernel::encode_inherited_fds` and `r2kernel::inherited_socket` with the same
 checks in `r2kernel/core/inherited_fds.hpp`.
+
+For a frontend listener, use `family: unix`, `type: stream`, and
+`listening: true`; do not request an IP `port` check for a Unix descriptor.
+C++ names this family `r2kernel::InheritedSocketFamily::unix_socket`.
+Keep the listener active while its child serves requests. Shutting it down
+affects every duplicate, including the child's descriptor.
 
 A package can instead let every process of its lease scope request brokered
 network and CAN sockets directly with `resources.sandbox.fd_delegation: lease_scope`; see

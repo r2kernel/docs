@@ -219,18 +219,24 @@ The Packages page accepts packages for `gateway`, `component`, `compound`, and
 `app` subsystem roles. `role: app` still has the strictest policy: application
 subsystems must call bound platform APIs rather than claiming NIC, CAN,
 serial, or device resources directly. Packages with browser UI should declare
-static assets in `frontend`. If the frontend needs a package-specific REST or
+static assets in `frontend`. Component, compound and app packages must declare
+`resources.sandbox.network: brokered`, including packages without a frontend.
+Only gateways may select `advisory` for direct hardware protocol access.
+If the frontend needs a package-specific REST or
 WebSocket backend, declare `frontend.context.api` or `frontend.context.ws` as
 localhost endpoint templates. The control backend exposes them to the browser
 through instance-scoped same-origin proxy paths. The package backend must not
-call `bind()` on a new TCP socket directly. Open the declared loopback listener
-through the broker instead.
+call `bind()` on a new TCP socket directly. Request the frontend listener
+through the broker instead. The broker retains the loopback TCP listener and
+returns an `AF_UNIX` listener for the package backend. It relays accepted TCP
+connections to that Unix listener.
 
 ```python
 from r2kernel.core import ResourceBrokerClient
 
-listener = ResourceBrokerClient().open_frontend_tcp_listener(kind="api").socket
-# pass listener to the HTTP server implementation for the app backend
+opened = ResourceBrokerClient().open_frontend_tcp_listener(kind="api")
+# pass opened.socket to an HTTP server that accepts an existing Unix listener
+# after stopping the server, call opened.close() to shut down the listener
 ```
 
 Only packages launched through R2Kernel receive leases, resource policy, runtime

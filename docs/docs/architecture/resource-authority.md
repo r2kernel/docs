@@ -36,12 +36,20 @@ only from process startup.
 
 ## Role Boundary
 
-Gateway subsystems are the normal owners of hardware-facing claims. Component
-subsystems may request compute resources but should reach device-level hardware
-through gateway APIs. Platform-specific device behavior is implemented as a
+Gateway subsystems own hardware-facing claims. Component subsystems may request
+compute resources and reach device-level hardware through gateway APIs.
+Component, compound and app packages must explicitly declare
+`resources.sandbox.network: brokered`, which permits direct creation of Unix
+sockets only. Only gateways may select the `advisory` direct-network exception.
+Platform-specific device behavior is implemented as a
 component rather than by giving a compound direct gateway access. App
 subsystems consume platform capabilities and use the managed
 frontend path for package UI communication.
+
+Static frontend assets are served by Control and require no package socket.
+A package-specific frontend backend receives a Unix listener from the broker;
+the broker retains the declared loopback TCP endpoint and relays connections.
+This frontend grant does not grant a component general external networking.
 
 This is an architectural rule, not a Linux claim that arbitrary unmanaged
 programs cannot access the host. Product deployments must combine R2Kernel managed

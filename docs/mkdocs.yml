@@ -55,6 +55,7 @@ nav:
       - Time Sync Operations: operate/time-sync-operations.md
       - Web and API Security: operate/web-and-api-security.md
       - Resource Control: operate/resource-control.md
+      - Approved App Connections: operate/app-outbound-connections.md
       - Real-Time Scheduling: operate/realtime-scheduling.md
       - Container Deployment: operate/container-deployment.md
       - Deployment Checks: operate/deployment-checks.md

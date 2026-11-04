@@ -18,6 +18,12 @@ compatibility surface is a `component.*` contract. In other words,
 the subsystem is the runtime unit, and the component contract is the API-contract
 set that other subsystems and robot slots depend on.
 
+The component packages declare `resources.sandbox.network: brokered`. Their
+control logic uses R2Kernel interfaces and gateway APIs, and cannot create
+direct IP or hardware socket connections. A component may include static
+frontend assets or request a declared frontend backend through the resource
+broker; see [Advanced Subsystem Packages](advanced-subsystem-packages.md).
+
 ## Run This Stage
 
 From the installed root.

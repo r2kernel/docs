@@ -242,7 +242,14 @@ recorded launch binding intents and the result for each requirement.
 declaration supersedes the previous lease's intent for that subsystem. A
 foreground `launch run` treats SIGINT, SIGTERM and SIGHUP (a closed terminal or
 SSH session) alike: it terminates the package's scope, reaps the package process
-and releases the lease. `r2kernel launch` replaces itself with
+and releases the lease. An approved outbound app, or an execution account
+mapping, uses broker-owned foreground execution. That mode requires a session
+without a controlling terminal and without terminal stdio. Interactive terminal
+job control is not supported there, so the CLI refuses the launch before
+starting a package. Use `--detach` from a terminal. Enabling an outbound app
+does not change the foreground route of unrelated packages.
+
+`r2kernel launch` replaces itself with
 `r2kernel-launch`, as the other `r2kernel` commands that run a runtime command
 do. A signal sent to the `r2kernel` process therefore reaches the launch. A
 signal that is already ignored when the launch starts stays ignored, as under

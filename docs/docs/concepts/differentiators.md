@@ -147,7 +147,7 @@ resources before it depends on them.
 - NIC claims
 - link-layer raw packet claims for EtherCAT-class gateways
 - CAN, serial, and device-node handles
-- frontend listener grants for app UI backends
+- frontend listener grants for component and app UI backends
 
 The same principle applies to multi-host timing. R2Kernel does not assume that a
 distributed robot has one magic global clock. Each host keeps its own local

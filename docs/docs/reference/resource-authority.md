@@ -25,7 +25,7 @@
 
 UID/GID 950 identify the Control account and 951 identify a separate package account; use the installed accounts' actual IDs. The package UID must differ from the Control UID. The policy, executable files, cgroup scope and their parent directories must be root-owned, without symlinks or group/world write permission. Use canonical executable paths: substitute the canonical absolute install prefix for `<prefix>` in the example. The federation key is a root-only regular file (mode `0600`, 16–4096 bytes); only an authenticated manager can load its material through the broker. Status and allocation snapshots contain no key material.
 
-A manager must match an approved UID and executable inode and remain outside the package cgroup subtree. A manager can launch only packages it can read itself: the resource service reads the package with the manager's user, group and supplementary groups. Every managed child enters a root-owned lease cgroup before its package entrypoint executes. Executing a manager binary from inside a package retains its package scope and cannot confer manager authority. Manager entrypoints disable process dumping; package seccomp denies tracing, cross-process memory and cross-process descriptor (`pidfd_getfd`) syscalls. Seccomp does not cover `/proc/<pid>/mem`; the kernel's ptrace rules govern it. With `kernel.yama.ptrace_scope` 1 or higher (the Ubuntu default), a process can open the memory only of its own descendants, so managed packages cannot reach each other, and a sandboxed package cannot reach a same-account process outside its own tree. With `kernel.yama.ptrace_scope=0`, any process of the same account, sandboxed or not, can read and write another's memory this way. Keep `ptrace_scope` at 1 or higher on hosts that run brokered packages beside other code of the same account. Foreground attachment is a single-use transition for the claiming manager's direct child, identified by PID and Linux process start time. Reattachment to a different process is rejected. Lifecycle changes, allocation inspection, shared-resource changes and federation-key reads require manager authority. Package FD requests require the original attached process identity and its resource grants. A brokered CAN descriptor is not confined to its claimed interface: its holder can bind it again or name another interface in each `sendmsg`, and so reach every CAN interface of the host, including interfaces another package claims exclusively. A package without `resources.sandbox.can: brokered` can open raw CAN sockets itself, because Linux requires no capability for them; see [Resource Control](../operate/resource-control.md#brokered-network-sandbox). A brokered UDP descriptor is likewise not confined to its claimed adapter for sending: its holder can name another interface for each datagram (`IP_PKTINFO`). Manager clients verify that the connected broker is a root peer before trusting any response. The broker socket stays root-owned; shared IPC directories use root ownership and sticky protection.
+A manager must match an approved UID and executable inode and remain outside the package cgroup subtree. A manager can launch only packages it can read itself: the resource service reads the package with the manager's user, group and supplementary groups. Every managed child enters a root-owned lease cgroup before its package entrypoint executes. Executing a manager binary from inside a package retains its package scope and cannot confer manager authority. Manager entrypoints disable process dumping; package seccomp denies tracing, cross-process memory and cross-process descriptor (`pidfd_getfd`) syscalls. Seccomp does not cover `/proc/<pid>/mem`; the kernel's ptrace rules govern it. With `kernel.yama.ptrace_scope` 1 or higher (the Ubuntu default), a process can open the memory only of its own descendants, so managed packages cannot reach each other, and a sandboxed package cannot reach a same-account process outside its own tree. With `kernel.yama.ptrace_scope=0`, any process of the same account, sandboxed or not, can read and write another's memory this way. Keep `ptrace_scope` at 1 or higher on hosts that run brokered packages beside other code of the same account. Foreground attachment is a single-use transition for the claiming manager's direct child, identified by PID and Linux process start time. Reattachment to a different process is rejected. Lifecycle changes, allocation inspection, shared-resource changes and federation-key reads require manager authority. Package FD requests require the original attached process identity and its resource grants. A brokered CAN descriptor is not confined to its claimed interface: its holder can bind it again or name another interface in each `sendmsg`, and so reach every CAN interface of the host, including interfaces another package claims exclusively. A gateway with `resources.sandbox.network: advisory` and without `resources.sandbox.can: brokered` can open raw CAN sockets itself, because Linux requires no capability for them. Brokered networking permits only Unix-domain socket creation, so it also blocks direct CAN sockets; see [Resource Control](../operate/resource-control.md#brokered-network-sandbox). A brokered UDP descriptor is likewise not confined to its claimed adapter for sending: its holder can name another interface for each datagram (`IP_PKTINFO`). Manager clients verify that the connected broker is a root peer before trusting any response. The broker socket stays root-owned; shared IPC directories use root ownership and sticky protection.
 
 Linux cgroup v2, root-controlled package scope, `openat2`, pidfd support and `cgroup.kill` (Linux 5.14+) are required. Missing authority prerequisites fail explicitly. Seccomp supports native x86-64 or aarch64 ABI; compatibility architectures and x32-tagged calls return `EPERM`. All detached launches and root/Control foreground launches run package code under the configured separate non-root UID/GID; privileged root package execution is unsupported. Other foreground operators retain their existing non-root execution identity. Broker foreground launches preserve the calling terminal descriptors and report the actual child exit status. Package directories, required SDK/config files and time-sync files must be accessible to the execution identity. Default runtime paths are `<runtime_root>/<execution_uid>/<instance_id>`. The provisioned shared runtime root is root:IPC-group mode `03770`; UID/instance/log directories are execution-UID:IPC-group `0750`, and logs are `0640`. Existing foreign-owned leaves require an explicit migration and are never adopted. Control home, passwords, overlays and token state must remain inaccessible for package writes.
 
@@ -85,6 +85,20 @@ An approved capability is ambient in the package process. It applies to the whol
 - `CAP_NET_ADMIN` amounts to host network administration: addresses, routes, firewall rules and interface state.
 
 The `exclusive` mode keeps other R2Kernel leases off the interface; it does not keep the package off other interfaces. The declared `protocols` are labels, and nothing restricts the package to them. Approve link-layer grants only for packages you trust with the host's network.
+
+## Approved app TCP streams
+
+The optional root `outbound_tcp` policy enables exact-execution TCP grants for
+allowed app packages. It is disabled when absent and defaults to an empty
+package allowlist. An app still requires brokered network and does not own a
+NIC. The broker owns the approved TCP connection and issues an AF_UNIX byte
+stream. A fresh broker execution ID prevents a reused lease ID from reusing an
+old grant.
+
+See [Approved App Connections](../operate/app-outbound-connections.md) for the
+policy fragment, live allocation fields, protected atomic grant-file updates,
+limits, renewals, revocation and matched SDK use. Existing authority policy
+updates preserve this optional section and do not enable it automatically.
 
 ## Managed scope retirement
 
@@ -153,6 +167,31 @@ Typed `not_found`, not its wording, makes exact-lease stop idempotent. An
 unknown termination outcome retains its reservation until the broker confirms
 retirement; inspect allocations before another mutation.
 
+
+## Managed launch defaults and reconciliation
+
+Manager-only package allocations include an optional `execution_context` with
+the execution UID and the base root used for an implicit runtime directory.
+These values describe the broker's resolved launch. They do not grant
+authority to a package or registration. Public allocation summaries omit this
+context.
+
+Frozen allocations may also include `package_runtime_exclusion`, the exact
+relative mutable-state subtree omitted from the code snapshot. This scope must
+match the broker's resolved runtime context. Reconciliation captures current
+source code with the same scope, so log writes do not cause code conflicts.
+Changes to static siblings still do. Older metadata without this field keeps
+its original full-tree content comparison. Public summaries omit the scope.
+
+Deployment, managed restart and runtime apply use that context when resolving
+the original request. This keeps runtime parameters consistent when the
+manager and broker have different environment settings. Frozen content hashes
+and execution IDs remain separate from the requested launch settings. A valid
+execution ID is still required for an approved outbound grant.
+
+Older allocations without this context use only the public resolver's exact
+legacy runtime layout. An arbitrary runtime path is not accepted as a recovered
+default. Update the runtime and CLI together.
 
 ## Recover after a resource daemon crash
 

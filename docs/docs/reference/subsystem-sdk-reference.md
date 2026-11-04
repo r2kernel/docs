@@ -614,7 +614,8 @@ The core `R2KernelClient` of each SDK offers the same `open_*` calls.
 | --- | --- | --- | --- |
 | `open_udp_socket(*, interface, bind_host="0.0.0.0", bind_port=0)` | `open_udp_socket(UdpSocketOptions)` | Open an approved UDP socket on a claimed interface | UDP device protocols |
 | `open_tcp_socket(*, interface, ..., listen=False, backlog=128)` | `open_tcp_socket(TcpSocketOptions)` | Open an approved TCP socket on a claimed interface | TCP device protocols or managed listeners |
-| `open_frontend_tcp_listener(*, kind="api", bind_host=None, bind_port=None, backlog=128)` | `open_frontend_tcp_listener(FrontendTcpListenerOptions)` | Open a package frontend loopback listener grant (`kind` is `api` or `ws`) | package-owned REST or WebSocket backend |
+| `open_approved_tcp_stream(*, grant_id)` | `open_approved_tcp_stream(grant_id)` | Receive a connected Unix stream to one root-approved TCP endpoint for this exact app execution | app connections to supervisory services or another robot |
+| `open_frontend_tcp_listener(*, kind="api", bind_host=None, bind_port=None, backlog=128)` | `open_frontend_tcp_listener(FrontendTcpListenerOptions)` | Receive a Unix listener behind the broker's declared loopback TCP frontend (`kind` is `api` or `ws`) | package-owned REST or WebSocket backend |
 | `open_can_socket(*, interface, receive_own_messages=False, can_fd_frames=False, nonblocking=True)` | `open_can_socket(CanSocketOptions)` | Open an approved CAN socket | CAN or CAN-FD devices |
 | `open_device(path, *, read=True, write=True, nonblocking=True)` | `open_device(path, DeviceOpenOptions)` | Open an approved device file | serial, USB, or udev-governed devices |
 | `ResourceBrokerClient.inherited_fd(kind, expect)` | `ResourceBrokerClient::inherited_fd(kind, expect)` | Validate and return a brokered socket inherited from the package leader through `R2KERNEL_INHERITED_FDS` | child processes of a package leader |
@@ -623,12 +624,44 @@ Python returns `BrokeredSocketResult` (`socket`, a `socket.socket`, and
 `metadata`, a dict) or `BrokeredFdResult` (`fd`, `metadata`). C++ returns
 `BrokeredSocketResult` (`socket`, a descriptor) or `BrokeredFdResult` (`fd`)
 with the broker's result object as `metadata_json` and a close-on-exec
-descriptor. The caller owns and closes the returned socket or descriptor. Each request is sent once within one
+descriptor. The caller owns and closes the returned result. Each request is sent once within one
 5-second budget; a refusal or an invalid reply raises (C++ throws
 `std::runtime_error`) and closes every received descriptor.
 
 Resource broker access requires `R2KERNEL_RESOURCE_LEASE_ID`, normally set by
 `r2kernel launch run` or `r2kernel deploy up`.
+
+Component, compound and app packages must declare
+`resources.sandbox.network: brokered`. Only gateways may opt into `advisory`.
+Generic NIC, CAN and device socket requests remain subject to their hardware
+claims; a component or app frontend grant does not provide those claims.
+
+`open_approved_tcp_stream` requires an enabled root policy and an exact live
+app-execution grant. The broker retains the TCP socket and revokes the Unix
+stream on expiry, removal or execution termination, including duplicated
+descriptors. SDKs verify the root peer, grant/lease metadata, a 32-character
+broker `execution_id`, and a connected non-listening Unix stream. There is no
+general NIC grant or fallback. See [Approved App Connections](../operate/app-outbound-connections.md)
+for configuration, provisioning, renewal and application authentication limits.
+
+The `open_frontend_tcp_listener` method and request names are retained. Its
+returned socket is `AF_UNIX`, `SOCK_STREAM` and listening. The broker owns the
+actual loopback TCP listener and relays connections to the package. Inspect the
+result metadata for the TCP endpoint; do not assume `getsockname()` returns an
+IP address and port. The HTTP or WebSocket server must accept an existing Unix
+listener. Both the returned listener and accepted connections stay in the Unix
+socket family and cannot be reconnected to an IP destination.
+
+When `frontend.context.api` and `frontend.context.ws` share a host and port,
+request one listener and serve both paths from it. Separate listeners require
+different declared endpoints.
+
+Stop the server before calling `BrokeredSocketResult.close()`. For a frontend
+listener, this shuts down the shared Unix listener before closing the local
+descriptor. A raw `socket.close()` or `::close(fd)` alone leaves the broker's
+duplicate open, so it does not immediately stop the frontend endpoint.
+Listener shutdown affects every duplicate, including descriptors passed to
+child processes. Lease termination also cleans up its frontend relays.
 
 A brokered UDP or CAN socket is opened on its claimed interface, but its holder
 is not confined to that interface: it can name another interface for each send

@@ -33,6 +33,11 @@ browser. This step starts `gateway.device_gateway` as one managed package with
 `r2kernel launch run`. Full deployment orchestration comes later, after the
 platform and application exist.
 
+The gateway package explicitly sets `resources.sandbox.network: advisory` for
+its direct HTTP connection to the simulator. This direct-network exception is
+available only to gateways. The component, compound and app packages use
+brokered networking and reach this adapter through R2Kernel interfaces.
+
 ## Run This Stage
 
 From the installed root.

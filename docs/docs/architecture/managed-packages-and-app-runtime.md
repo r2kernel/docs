@@ -134,8 +134,10 @@ Runtime resolves the context for each package instance. Browser code should use
 that resolved context instead of hardcoding backend ports.
 
 The corresponding package backend should open declared frontend listeners through
-the managed resource broker. That keeps the listener tied to the instance
-resource lease and avoids unmanaged TCP servers inside packages.
+the managed resource broker. The broker owns the loopback TCP endpoint and
+returns a Unix listener to the package backend. That keeps the frontend tied
+to the instance resource lease and prevents the package from reusing a frontend
+TCP descriptor for another destination.
 
 ## Related Pages
 

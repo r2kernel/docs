@@ -145,7 +145,9 @@ instance and read the instance context before calling REST or WebSocket
 endpoints. Browser GUI communication should use the control backend's
 same-origin instance proxy. If the package also runs a small local GUI backend,
 it must open the declared `frontend.context` listener through
-`open_frontend_tcp_listener` rather than binding a TCP port directly.
+`open_frontend_tcp_listener` rather than binding a TCP port directly. The helper
+returns a Unix listener; the broker retains the declared loopback TCP endpoint
+and relays connections. Static assets alone need no listener in the package.
 Use relative asset paths when building the static frontend. An absolute
 `/packages/<package-id>/ui/` asset base targets a retired route and returns
 HTTP `404`.

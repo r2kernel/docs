@@ -155,7 +155,8 @@ created by the resource service as root, for the package account.
 ## Package Resource Declaration
 
 A gateway that uses IP networking, CAN and a serial device through the resource
-service:
+service is shown below. Both gateway examples in this section have a sibling
+`subsystem.yaml` that declares `subsystem.role: gateway`.
 
 ```yaml
 schema_version: 1
@@ -185,8 +186,8 @@ resources:
 A link-layer claim needs direct `AF_PACKET` sockets, which brokered network
 blocks, and its `CAP_NET_RAW` grant reaches CAN interfaces past brokered CAN, so
 manifest validation refuses `resources.link_layer` together with either brokered
-sandbox. An EtherCAT gateway is therefore a separate package without a brokered
-sandbox:
+sandbox. An EtherCAT gateway therefore declares the explicit gateway-only
+`network: advisory` exception:
 
 ```yaml
 schema_version: 1
@@ -205,6 +206,8 @@ resources:
         protocols: [ethercat]
         grant:
           capabilities: [CAP_NET_RAW]
+  sandbox:
+    network: advisory
 ```
 
 Before launching it, approve its capability for `enp5s0` in the resource
@@ -234,6 +237,8 @@ resources:
         protocols: [ethercat]
         grant:
           capabilities: [CAP_NET_RAW]
+  sandbox:
+    network: advisory
 ```
 
 Each instance then names its adapter when it starts:
@@ -355,38 +360,88 @@ gateway must change interface settings.
 
 ## Role Policy
 
-- gateway packages may claim hardware-facing resources
-- component packages may claim compute resources and normally use gateway APIs
-  for hardware access
+- gateway packages may claim hardware-facing resources; they use brokered
+  networking by default and may explicitly select `advisory` for direct device
+  protocols such as EtherCAT
+- component packages may claim compute resources and must use gateway APIs for
+  hardware access; they must declare `resources.sandbox.network: brokered`
 - declarative compound packages use component spatial surfaces and Control-free
-  API exports; they cannot bind directly to gateways or implement behavior endpoints
+  API exports; they cannot bind directly to gateways or implement behavior
+  endpoints, and must declare `resources.sandbox.network: brokered`
 - app packages use Event, Procedure, and Operation interfaces through Components,
-  directly or via Compound exports, and must not claim device-facing resources
+  directly or via Compound exports, must not claim device-facing resources, and
+  must declare `resources.sandbox.network: brokered`
 
-App packages with a browser backend use `resources.sandbox.network: brokered`
-and declare the listener through `frontend.context`. Their browser assets remain
-static package frontend files served by R2Kernel.
+Only a gateway may select `network: advisory`. It permits direct socket
+creation and does not monitor traffic or warn about undeclared connections.
+It is a trusted gateway exception, not an EtherCAT-only restriction.
+Omitting the network setting in a role-free utility package or a gateway keeps
+the brokered socket filter enabled. A raw link-layer claim requires explicit
+`network: advisory`; omission cannot disable the filter.
+
+A role-free utility package may claim CPU resources, but cannot recover NIC,
+device or link-layer claims by omitting its subsystem manifest or selecting an
+unknown role. Those hardware claims require a gateway subsystem manifest.
+App packages have no general outbound TCP or UDP grant through NIC claims.
+
+Component and app packages may include static browser assets, which R2Kernel
+serves without a package listener. A package-specific REST or WebSocket backend
+must declare its loopback endpoint through `frontend.context` and request it
+from the broker. The broker retains the TCP listener and relays accepted
+connections to an `AF_UNIX` listener returned to the package. This frontend
+grant does not permit general outbound connections or a package-owned IP
+listener.
+
+After its server stops, the package calls the returned broker result's
+`close()` method to shut down the Unix listener and close the descriptor.
+Closing only the raw descriptor does not stop the broker's duplicate
+immediately. Lease termination also cleans up its frontend listeners and
+connections.
+
+Frontend relays have host-wide listener and connection limits, a per-lease
+connection limit, bounded buffers and a connect timeout. Configure these under
+`resource_service.frontend_relay` and restart `r2kernel-resourced` after changing
+them. The defaults are:
+
+```yaml
+resource_service:
+  frontend_relay:
+    max_listeners: 64
+    max_connections: 64
+    max_connections_per_lease: 8
+    buffer_bytes: 16384
+    connect_timeout_ms: 1000
+```
+
+Listener and connection limits must be 1–4096, and the per-lease limit cannot
+exceed `max_connections`. Buffers must be 1024–65536 bytes and the connect
+timeout must be 1–5000 milliseconds.
 
 ## Brokered Network Sandbox
 
-With `resources.sandbox.network: brokered`, no process of the package's process
-tree can create `AF_INET` or `AF_INET6` sockets, or sockets of the families that
-reach the network without them (`AF_PACKET`, `AF_XDP`, `AF_LLC`, `AF_SMC`,
-`AF_RDS`, `AF_TIPC`, `AF_RXRPC`); the call fails with `EPERM`.
-`resources.sandbox.can: brokered` does the same for CAN sockets. A package with
+With `resources.sandbox.network: brokered`, the package's process tree may
+create only `AF_UNIX` sockets. Creating another socket family fails with
+`EPERM`, including `AF_INET`, `AF_INET6`, `AF_PACKET`, `AF_CAN`, `AF_VSOCK` and
+`AF_BLUETOOTH`. This also applies when a utility package or gateway omits the
+network setting. An explicit gateway `network: advisory` exception disables
+this network-family restriction.
+
+`resources.sandbox.can: brokered` also blocks direct CAN creation when a
+gateway uses `network: advisory`. A package with
 `resources.sandbox.can: brokered` cannot also claim `resources.link_layer`: the
 link-layer `CAP_NET_RAW` grant opens `AF_PACKET` sockets that reach CAN
 interfaces directly, so manifest validation and the resource service refuse the
 combination. With `network`
 or `can` brokered, `io_uring_setup`, `io_uring_enter` and `io_uring_register`
 also fail with `EPERM`, because io_uring can create sockets without the
-`socket` call. Other socket families, such as `AF_VSOCK` or `AF_BLUETOOTH`,
-stay allowed. The filter governs socket creation only: a descriptor passed to
+`socket` call. The filter governs socket creation only: a descriptor passed to
 the package from outside (for example over a Unix-domain socket) is not
-filtered. Local Control and
-Event use Unix-domain sockets and are not affected. Code that needs a TCP, UDP,
-CAN or frontend listener socket requests it from the resource service through
-the SDK, or receives it from the package leader as described below.
+filtered. Local Control and Event use Unix-domain sockets and are not affected.
+Gateway code that needs a TCP, UDP or CAN socket requests it from the resource
+service through the SDK, or receives it from the package leader as described
+below. Component and app frontend backends receive a Unix listener instead of
+the TCP descriptor, so they cannot reconnect that descriptor to another IP
+destination.
 
 Brokered CAN decides which packages can use CAN, not which CAN interface they
 use. A package with `resources.sandbox.can: brokered` cannot create CAN sockets
@@ -395,21 +450,25 @@ brokered CAN socket, it is not confined to the claimed interface: Linux lets the
 holder of a raw CAN socket bind it again or name another interface in each
 `sendmsg`, so the package can send and receive on every CAN interface of the
 host, including interfaces another package claims exclusively. Give CAN claims
-only to packages you trust with every CAN bus on the host. A package without
-`resources.sandbox.can: brokered` can open raw CAN sockets directly, because
-Linux requires no capability for them.
+only to gateways you trust with every CAN bus on the host. A gateway with
+`network: advisory` and without `resources.sandbox.can: brokered` can open raw
+CAN sockets directly, because Linux requires no capability for them. Brokered
+networking blocks direct CAN creation even when no separate CAN sandbox mode
+is declared.
 
 Brokered network decides which packages get IP sockets, not which adapter
 they send through. A package with `resources.sandbox.network: brokered`
 cannot create IP sockets itself, so it reaches the network only through
-sockets the resource service opens for its claims. Each brokered socket is
-bound to its claimed adapter, and the package cannot move it to another
-adapter. A brokered UDP socket is still not confined to that adapter for
+sockets the resource service opens for its claims. Each generic brokered
+gateway socket is bound to its claimed adapter, and the package cannot move it
+to another adapter. A brokered UDP socket is still not confined to that adapter for
 sending: Linux lets the holder name another interface for each datagram
 (`IP_PKTINFO` in `sendmsg`). A package holding a brokered UDP socket can
 therefore send through every adapter of the host, including adapters another
 package claims exclusively. Give UDP claims only to packages you trust to
-send through every adapter of the host.
+send through every adapter of the host. These generic gateway sockets remain
+real IP descriptors. A frontend listener grant uses a Unix listener and a
+broker-owned TCP relay instead.
 
 `tcp_ports` and `udp_ports` of a `resources.network.interfaces[]` entry list the
 ports a brokered socket may bind. An empty list allows port 0 (chosen by the

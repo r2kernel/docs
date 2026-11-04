@@ -47,7 +47,7 @@ Expected result.
 - cleaner subsystem instances are visible as managed runtime sessions
 - the package runtime directories are under `<prefix>/var/run/packages`
 - the simulated gateway has no hardware resource claim yet
-- packages with browser backends use brokered network sandboxing for package frontends
+- component, compound and app packages use brokered networking, with or without browser backends
 
 This proves the first resource-control rule. A package launched outside R2Kernel
 can run code, but it does not receive a managed resource lease.
@@ -70,10 +70,15 @@ In the simulator, both packages have empty hardware claims because the gateway
 talks to the provided simulator HTTP API. On a physical cleaner, the same roles
 would claim different resources.
 
+The simulator-backed gateway explicitly selects `sandbox.network: advisory`
+for its direct HTTP adapter. Components, compounds and apps declare
+`sandbox.network: brokered`, which allows them to create only Unix-domain
+sockets. Only a gateway may select the direct-network exception.
+
 | Cleaner role | Resource policy |
 | --- | --- |
 | `gateway.device_gateway` | owns NIC, raw Ethernet fieldbus, CAN, serial, camera, GPIO, or device-node claims |
-| `component.*` | may request CPU affinity or scheduler policy, but should not own hardware interfaces |
+| `component.*` | may request CPU affinity or scheduler policy; hardware access uses gateway APIs, and declared frontend backends use brokered Unix listeners |
 | `compound.cleaner` | no raw device claim; it declares spatial composition and exported APIs only |
 | `app.cleaner.*` | no device claim; it calls exported APIs and uses brokered package frontend networking |
 
@@ -137,7 +142,7 @@ r2kernel launch run /tmp/r2kernel-brokered-network \
 ```
 
 For an EtherCAT or other raw Ethernet fieldbus gateway, declare a link-layer
-claim in the gateway package.
+claim and the direct-network exception in the gateway package.
 
 ```yaml
 resources:
@@ -149,6 +154,8 @@ resources:
         protocols: [ethercat]
         grant:
           capabilities: [CAP_NET_RAW]
+  sandbox:
+    network: advisory
 ```
 
 Approve the capability for `eth1` in the root-managed resource authority
@@ -197,7 +204,7 @@ tutorials/advanced/resource_control/brokered_device/bin/run_tty_smoke.sh \
 
 Expected result for these gateway outlet checks.
 
-- direct unmanaged access is blocked where a brokered sandbox is requested
+- brokered packages cannot create non-Unix sockets directly
 - accepted handles are delivered through the resource broker
 - conflicting claims on the same exclusive resource are rejected
 - raw Ethernet fieldbus traffic stays inside the gateway process after launch

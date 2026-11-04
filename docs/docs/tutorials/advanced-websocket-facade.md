@@ -151,6 +151,11 @@ When the operator presses a button or key, the package frontend calls the manage
 same-origin package proxy. The proxy forwards the request to the app's brokered
 loopback frontend API. For teleop, the app then calls bound compound exports.
 
+The broker owns that loopback TCP listener and relays requests to the app's
+Unix listener. The app does not receive a TCP descriptor that it could reuse
+for another destination. Its frontend server stops through the broker result's
+`close()` method, which shuts down the Unix listener before closing it.
+
 ```text
 teleop package frontend
   -> /api/v1/packages/tutorial.robot_cleaner.teleop/instances/app.cleaner.teleop/api/command
