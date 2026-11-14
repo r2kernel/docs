@@ -129,6 +129,10 @@ r2kernel package validate tutorials/subsystems/component.mobile
 
 Validation checks manifest schema, package name safety, entrypoint paths,
 optional static frontend paths, contract spec roots, and resource claim format.
+It also resolves every public contract the subsystem manifest provides or
+requires, such as `component.mobile_base.odometry.v2`, against the package's
+spec roots and the installed dictionary, and refuses a spec root that redefines
+a standard ID or adds an ID under a standard prefix.
 
 ## 4. Build A Runnable Package Directory
 
@@ -141,6 +145,14 @@ r2kernel package build tutorials/subsystems/component.mobile \
 The current build step validates and copies an already runnable package
 directory. It does not compile application source, vendor dependencies, sign
 artifacts, or create a system installer.
+
+The cleaner packages import shared tutorial modules from `support/python` and
+`lib` in the tutorials tree. A copy outside that tree, such as this build
+output, loads them from `<prefix>/tutorials` of an installation at the default
+location. For a custom installation prefix or a source checkout, set
+`R2KERNEL_TUTORIAL_ROOT` in the package manifest's `entrypoint.env` to the
+absolute `tutorials` directory on the runtime host before you build. Without
+either, the package exits with `could not locate R2Kernel tutorial runtime`.
 
 To upload through the Web Console, archive the package directory.
 
@@ -291,8 +303,8 @@ application           -> selected cleaner application package
 
 Gateway robot slots are Control-only. The cleaner's perception adapter is a
 Component instance, and GNSS uses a standard source Control on the Gateway. The
-device Gateway's digital-I/O Controls remain private bindings rather than
-public slots.
+device Gateway's digital-I/O Controls use a custom package-local contract,
+bound from the gripper to the Gateway rather than through a robot slot.
 
 Before packaging the cleaner as a product robot artifact, keep the same standard
 contract instances and rerun `r2kernel deploy validate`.

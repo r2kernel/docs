@@ -23,7 +23,7 @@ whether explicit acceptance is required.
 | Payload | License boundary |
 | --- | --- |
 | R2Kernel runtime | R2Kernel Runtime License; acceptance required |
-| R2Kernel Python and C++ SDKs | Apache-2.0 |
+| R2Kernel Python and C++ SDKs | SDK source Apache-2.0; the bundled `libr2kernel_comm` binary is under the R2Kernel Runtime License until its source is published |
 | Public specs, tutorials, demo source, and documentation | Apache-2.0, except identified third-party material |
 | Bundled third-party software | license stated in Open Source Notices |
 | Download processing | R2Kernel Download Notice |
@@ -33,7 +33,7 @@ replace the licenses of the SDK or bundled open-source dependencies.
 
 Runtime permissions come only from the Runtime License supplied with the
 release and any applicable separate agreement, not from this documentation.
-Version 0.2 names LRH Korea Inc. as Licensor and permits no-charge personal and
+Version 0.3 names LRH Korea Inc. as Licensor and permits no-charge personal and
 commercial use and redistribution of unmodified runtime binaries, including
 OEM/preinstalled systems, mirrors and offline delivery, subject to its terms.
 Distributors must preserve licenses and notices, identify R2Kernel and its
@@ -99,6 +99,32 @@ The distribution service may record the following operational metadata.
 An artifact response record is not proof that a download completed, an
 installation succeeded, or a runtime is actively used.
 
+LRH Korea Inc. is responsible for this data. Request records and client reports
+are deleted after 90 days. Consent records have their client IP, country, and
+user agent cleared after 90 days, and their network number and operator name
+cleared after 1095 days; the rest of the record stays as proof of what was
+accepted. `DOWNLOAD-NOTICE-R2Kernel.txt` is the complete statement.
+
+Some releases use consent-gated delivery. The installer presents the license
+and notices before requesting permission for the installation payloads. The
+service records the accepted release and license identity, acceptance time,
+installation session, client IP, country, full user agent, permission result,
+and the network number and operator name that the delivery network derives from
+the client IP. The installer does not send those two values. They are used to
+review license compliance, including repeated acceptance from one network. The bootstrap installer and the documents needed for that review remain
+available before acceptance.
+
+Files may then be sent directly by GitHub through temporary download addresses.
+GitHub receives the IP address, user agent, and asset request needed for that
+transfer. You do not need to supply GitHub credentials for this flow. An
+installation-session ID is not a named user account.
+
+The installer may report checksum-verified downloads and successful
+installation. These are client reports, distinct from the service's permission
+and request records, and each one is also recorded as a request. The service cannot directly measure the bytes received
+from an external delivery provider. Temporary addresses may be reused or
+shared until they expire.
+
 It does not collect application source code, subsystem payloads, runtime
 messages, robot data, host configuration files, shell history, or unrelated
 files from the installing host.
@@ -149,7 +175,9 @@ stamps the configured version, HTTPS download bootstrap, repository URLs, and
 documentation site. Publication overlays these generated entry files while
 preserving repository-owned policy/assets. Source remediation does not rewrite
 a published stable release tag; a prerelease tag and its artifacts change only
-through a reviewed replacement of that same prerelease version.
+through a reviewed replacement of that same prerelease version. The one
+exception is 1.0.0: a reviewed reissue replaced its `v1.0.0` tags and Release
+assets once, keeping the version.
 
 ## Release Manifest
 
@@ -185,8 +213,9 @@ The installer performs these user-visible actions.
 - installs the uninstaller and records enough release metadata for validation
 
 See [Installation](../getting-started/installation.md) for the supported install
-flow. The complete distribution metadata disclosure is included as
-`DOWNLOAD_NOTICE.md` in the release source and installed license directory.
+flow. The complete distribution metadata disclosure is published with each
+release and installed under `<prefix>/licenses` as
+`DOWNLOAD-NOTICE-R2Kernel.txt`.
 
 ## Publication Boundary
 

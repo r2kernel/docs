@@ -1,294 +1,311 @@
-# Approved app outbound connections
+# App Network Access
 
-Use an approved TCP stream when a managed `role: app` package must contact a
-supervisory service or another robot. This connection is separate from
-federation. It does not add the remote robot to the local robot's runtime.
+A managed `role: app` package runs in the brokered network sandbox. It cannot
+create network sockets itself.
 
-The host administrator approves one numeric destination and port for one
-running app execution. The broker owns the TCP connection. The app receives
-a connected Unix stream, so it cannot reconnect that descriptor to another
-IP destination. Components continue to use R2Kernel interfaces and their
-declared frontend backends.
+Its outbound TCP connections go through the host's **app uplink**:
 
-This feature requires a runtime advertising `approved_tcp_stream_v1` and
-matching Python or C++ SDK support. Configured authority is reported separately
-as `approved_tcp_streams_enabled`. An older runtime refuses the new operation.
-The SDK does not fall back to a general socket or a different package role.
+1. The app asks the root resource broker for a connection to a host and port.
+2. The broker resolves the name, checks every address, and connects.
+3. The app receives a connected stream. The broker keeps the TCP connection
+   and relays the bytes.
 
-## Enable the host policy
+The uplink never reaches the robot's device networks. Inbound traffic to an app
+uses its declared frontend listener through the Control proxy (see
+[Product Frontend Modes](product-frontend-modes.md)). Federation is separate
+and unchanged.
 
-Add the optional `outbound_tcp` section to the root-owned
-`/etc/r2kernel/resource-authority.json`. Keep the existing identity, executable,
-device and link-layer fields. The feature stays disabled when this section is
-absent. An empty `allowed_packages` list authorizes no app packages.
+## Modes
+
+The mode is a host setting. A package cannot choose or change it.
+
+| Mode | What apps can do |
+| --- | --- |
+| `auto` (default) | Connect out through any network interface that no gateway uses. |
+| `explicit` | Connect out only through the interfaces you list. |
+| `off` | Nothing outbound. Apps still receive traffic through Control. |
+
+The installer asks for the mode when it installs the system services. See
+[Choose the mode](#choose-the-mode).
+
+## What an app can never reach
+
+**Device networks.** In every mode, the uplink excludes:
+
+- every interface that a gateway claims for raw link-layer access, for example
+  EtherCAT
+- every interface that a gateway claims with IP `mode: exclusive`
+- every address range that a gateway declares in `device_networks`, or that you
+  list in `protected_networks`
+- a `shared` or `advisory` gateway interface whose ranges nobody declared. The
+  whole interface is excluded, because R2Kernel cannot tell the devices apart
+  from the rest of that network.
+- every interface stacked on an excluded gateway interface: a VLAN or macvlan
+  on it, or a bridge or bond with it as a port
+
+The networks directly connected to any excluded interface are protected too,
+through every interface.
+
+Installed gateways protect their networks even while they are stopped. A
+gateway claim always wins: when a gateway starts and claims an interface, the
+uplink connections on that interface are closed.
+
+One exception: a gateway that chooses its adapter per instance, through a
+parameter without a default, protects that adapter only while an instance runs.
+Give the parameter a default, or [exclude the
+adapter](#keep-traffic-off-an-interface).
+
+**Always blocked**, whatever the configuration:
+
+- loopback (`127.0.0.0/8`, `::1`) and unspecified addresses (`0.0.0.0/8`, `::`)
+- every address of this host, on any interface
+- link-local addresses (`169.254.0.0/16`, `fe80::/10`), which includes cloud
+  metadata services
+- multicast and broadcast addresses
+
+IPv4-mapped IPv6 addresses, and the IPv4 address inside NAT64 (`64:ff9b::/96`)
+and 6to4 (`2002::/16`) addresses, are checked against the same blocks.
+
+The host's own Control API is blocked on purpose. With the default
+configuration it accepts local callers without authentication. Other R2Kernel
+hosts stay reachable.
+
+R2Kernel knows device networks only through gateway claims and declarations.
+A device network that software outside R2Kernel drives is invisible to it. Keep
+app traffic off it with the [exclusion list](#keep-traffic-off-an-interface).
+
+The broker checks the destination the app asked for. NAT rules on the robot
+itself that rewrite outgoing destinations, for example on a Kubernetes node, can
+redirect an allowed address to this host after the check. Do not enable the
+uplink on such hosts, or restrict destinations with the
+[allowlist](#restrict-destinations-optional).
+
+## Choose the mode
+
+**At installation:**
+
+- Interactive installs ask "App network access" with three choices:
+  - Automatic
+  - Select interfaces
+  - Off
+- After Automatic, the installer lists the detected interfaces and asks which
+  ones to exclude.
+- Non-interactive installs use these flags. The default is `auto` with no
+  exclusions.
+
+```bash
+--app-uplink auto|off|<nic>[,<nic>...]
+--app-uplink-exclude <nic>[,<nic>...]
+```
+
+The variables `R2KERNEL_APP_UPLINK` and `R2KERNEL_APP_UPLINK_EXCLUDE` work the
+same way. An upgrade keeps the current setting unless you pass a flag. See the
+[installation reference](../reference/installation-reference.md).
+
+**After installation**, change the mode as root, then restart the broker:
+
+```bash
+sudo <prefix>/runtime/bin/r2kernel-resourced --set-app-uplink auto
+sudo <prefix>/runtime/bin/r2kernel-resourced --set-app-uplink eth0,wlan0
+sudo <prefix>/runtime/bin/r2kernel-resourced --set-app-uplink off
+sudo systemctl restart r2kernel-resourced
+```
+
+In `explicit` mode, a listed interface is used only when the system has a real
+route to the destination through it. A reject route (prohibit, blackhole or
+unreachable) is final.
+
+A list of interfaces selects `explicit` mode. The command changes only the mode,
+the interface list and, with `--app-uplink-exclude`, the exclusion list. Every
+other setting is kept.
+
+The setting lives in the root-owned policy `/etc/r2kernel/resource-authority.json`
+under `app_uplink`. The [resource authority
+reference](../reference/resource-authority.md#app-uplink) lists every field.
+
+## Keep traffic off an interface
+
+`exclude_interfaces` keeps app traffic off interfaces that R2Kernel does not
+recognize as device networks. Typical entries:
+
+- a company VPN (`wg0`, `tun0`) that apps must not reach through
+- a container bridge (`docker0`) whose services apps must not reach
+- a device network driven by software outside R2Kernel
+
+```bash
+sudo <prefix>/runtime/bin/r2kernel-resourced --set-app-uplink auto --app-uplink-exclude wg0,docker0
+sudo systemctl restart r2kernel-resourced
+```
+
+Pass `--app-uplink-exclude ""` to clear the list.
+
+## Protect device ranges on a shared interface
+
+A gateway that shares an interface with ordinary traffic declares its device
+ranges:
+
+```yaml
+resources:
+  network:
+    interfaces:
+      - name: eth0
+        mode: shared
+        device_networks: [198.51.100.0/24]
+```
+
+The interface then stays usable for apps, except for those ranges. A gateway
+with no devices on a shared adapter declares `device_networks: []`; the adapter
+then stays fully usable for apps.
+
+You can protect ranges yourself in the policy. An entry with `interface` also
+marks that shared interface as covered:
 
 ```json
-{
-  "outbound_tcp": {
-    "grants_path": "/run/r2kernel-app-egress/grants.json",
-    "allowed_packages": ["example.robot_supervisor"]
-  }
+"app_uplink": {
+  "mode": "auto",
+  "protected_networks": [
+    {"interface": "eth0", "networks": ["198.51.100.0/24"]},
+    {"networks": ["10.20.0.0/16"]}
+  ]
 }
 ```
 
-This is a fragment to merge into the existing authority document, not a
-replacement for the complete policy. Restart `r2kernel-resourced` after editing
-that policy. Grant-file updates below do not require a restart.
+## Restrict destinations (optional)
 
-<details>
-<summary>Optional limits and snapshot location</summary>
-
-| Setting | Default | Accepted range |
-| --- | --- | --- |
-| `snapshot_root` | `/var/lib/r2kernel-approved-packages` | absolute normalized cache path on executable storage with protected ancestors |
-| `max_package_bytes` | 67108864 | 1–268435456 |
-| `max_package_files` | 4096 | 1–16384 |
-| `max_snapshots` | 64 | 1–4096 |
-| `max_streams` | 64 | 1–1024 |
-| `max_streams_per_lease` | 4 | 1–`max_streams` |
-| `buffer_bytes` | 16384 | 1024–65536 per direction |
-| `poll_ms` | 100 | 10–1000 |
-| `max_grants` | 256 | 1–4096 |
-| `max_grant_ttl_seconds` | 60 | 1–3600 |
-
-The package allowlist has at most 256 distinct package names. Set both stream
-limits when choosing a host limit smaller than the default per-lease limit.
-
-The snapshot cache contains executable code. Its filesystem must allow
-execution and support POSIX ACLs. `/run` is often mounted with `noexec` and is
-not a suitable cache location on those hosts. Preflight checks the cache or
-its nearest existing parent without creating it. The broker checks the actual
-opened cache before publishing or reusing a snapshot. A `noexec` filesystem
-causes an explicit error. There is no automatic fallback or remount.
-
-To use another location, set `outbound_tcp.snapshot_root` explicitly. Provision
-its parent directories before launching packages. Every ancestor must remain
-root-owned without group or other write access and must allow the manager and
-execution accounts to traverse the path. The broker creates a missing cache
-directory with the required protected access. It validates an existing cache
-rather than changing its permissions to adopt it.
-
-</details>
-
-The app package must declare `resources.sandbox.network: brokered`. Do not add
-NIC, CAN, serial, device or link-layer claims to enable this feature. Its
-entrypoint and working directory must resolve inside the frozen package tree.
-The resolved runtime directory is mutable state and is excluded from that tree.
-Keep executable code, subsystem specifications and static assets outside it.
-
-For a source-local implicit default, the broker excludes the resolved runtime
-base, including its UID and instance directories. For an explicit source-local
-runtime path, it excludes only that exact subtree. Static siblings remain part
-of the content identity. An external runtime path needs no source exclusion.
-Creating or writing runtime logs does not change the frozen code identity.
-
-Allowed app packages execute from a root-owned, read-only snapshot. Its V2
-content identity includes file paths, executable bits, file bytes and empty
-directory structure. POSIX ACLs grant read/execute access only to the requester
-and execution accounts, in addition to root. The snapshot cache is not made
-world-readable. Newly created source-local runtime ancestors also preserve
-the requester's access for later admission checks. The requester receives
-read/execute access to static parent directories and traverse access to state
-directories. This does not grant read access to log files. Existing directories
-are validated rather than adopted. The platform must support the required descriptor-safe path
-resolution and POSIX ACLs. An unsupported filesystem or unsafe source is an
-explicit launch failure.
-
-Foreground CLI runs of a selected allowlisted package use a broker-owned
-launch so that app receives a frozen execution identity. Other packages keep
-their existing foreground route. A claim-only client cannot attest a frozen execution: an allocation
-without a broker `execution_id` cannot receive an approved stream grant.
-
-Use `--detach` when starting the app from a terminal. Broker-owned foreground
-execution supports sessions without a controlling terminal and without terminal
-stdio. It does not provide interactive terminal job control. The CLI refuses an
-attached terminal before starting the package, including a shell job whose stdio
-has been redirected. Runtime and CLI must support the same package-specific
-foreground identity query.
-
-Only foreground runs that keep a non-root caller's UID and GID inherit that
-caller's verified supplementary groups. Control service callers are excluded.
-
-Code is rebased into the snapshot while its resolved runtime directory stays
-at the original location. Runtime permissions are checked against the original
-source and resolved state root, independently of the immutable code location.
-Custom default state roots outside the package must already be provisioned with
-the required ownership and access. A source-local parent must permit the
-execution account to create its state directories. The broker does not change
-the ownership or permissions of an existing source directory to make it
-writable. Prefer a separate state root, such as the installed service's runtime
-root. For a directly started daemon, configure
-`R2KERNEL_PACKAGE_RUNTIME_ROOT` or choose an external `--runtime-dir`.
-
-An unchanged frozen app can be kept by a repeated `r2kernel deploy up`. The
-comparison checks the requested settings and current package contents without
-using the execution ID as a requested setting. The ID identifies one running
-execution. Changed source
-contents or launch settings still require an explicit replacement. Restart and
-runtime apply retain the original request, including an omitted runtime
-directory, while checking the defaults that the broker actually applied.
-
-Host interpreters and installed libraries remain trusted runtime inputs.
-Package content hashes do not attest those dependencies. Retire unused
-snapshots explicitly when the configured cache limit is reached. The broker
-does not remove snapshots that might still belong to running executions.
-The default cache under `/var/lib` survives broker restarts and host reboots.
-Uninstall does not remove this default cache. A custom cache also survives
-uninstall when it is outside all installer-managed installation directories.
-Keep retained snapshots outside the installation prefix. An upgrade or uninstall
-can replace or remove managed contents.
-Changing `snapshot_root` selects storage for later launches. It does not move,
-rewrite or delete existing snapshots. Before moving or retiring a snapshot,
-stop every execution that references its `package_execution_dir` and confirm
-that no live allocation still uses it. Keep any snapshots needed for retained
-execution records until their retirement is complete.
-Failed helper preparation rolls back only the snapshot it newly created.
-Successfully prepared code stays cached even if later admission is refused or
-the requester disconnects. A process crash may also require explicit retirement.
-
-## Identify the running execution
-
-Launch the allowed app through R2Kernel:
-
-```sh
-r2kernel-launch run /path/to/app --detach
-```
-
-During provisioning, the app should
-wait for its approved connection to become available before starting work
-that depends on it. Inspect the live resource allocation as an authorized
-manager:
-
-```sh
-r2kernel-launch list --json
-```
-
-Find the app's `lease_id` and its `package_launch` object. Record these values:
-
-- `package_name` and `instance_id`
-- `manifest_sha256` and `package_content_sha256`
-- `execution_id`, the fresh 32-character hexadecimal ID created by the broker
-
-Approve the expected package revision and content before issuing a grant.
-A package path, instance name or lease ID alone is not an execution identity.
-A restart creates a different `execution_id`, even if the same logical lease
-ID is used. Old grants do not authorize the replacement execution.
-
-## Publish an exact grant
-
-Create a protected grant directory on the runtime host:
-
-```sh
-sudo install -d -o root -g root -m 0700 /run/r2kernel-app-egress
-```
-
-The grant file is a bounded JSON document with `schema_version: 1`, a positive
-`revision` and a `grants` list. The following example shows its shape. Replace
-the execution values with the inspected allocation, choose the real interface
-and numeric destination, and set `expires_at` to a current Unix timestamp plus
-the required lifetime. The example expiry is deliberately not a current grant.
+`allowed_destinations` limits apps to the destinations you list. When the list
+is empty or absent, any destination outside the blocks is allowed.
 
 ```json
-{
-  "schema_version": 1,
-  "revision": 1,
-  "grants": [{
-    "id": "robot-supervisor-control",
-    "lease_id": "the-current-lease-id",
-    "package_name": "example.robot_supervisor",
-    "instance_id": "app.supervisor",
-    "manifest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-    "package_content_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-    "execution_id": "11111111111111111111111111111111",
-    "interface": "eth0",
-    "destination": "192.0.2.40",
-    "port": 443,
-    "expires_at": 1,
-    "audit": {"purpose": "robot supervisory connection"}
-  }]
+"app_uplink": {
+  "mode": "auto",
+  "allowed_destinations": [
+    {"host": "api.example.com", "ports": [443]},
+    {"host": "*.example.net"},
+    {"network": "203.0.113.0/24", "ports": [8001]}
+  ]
 }
 ```
 
-The destination must be a numeric IPv4 or IPv6 address. DNS names, wildcard
-destinations, listeners and UDP are not part of this operation. `audit` is
-optional, with at most 32 string entries. Keys may contain at most 64 bytes,
-and values at most 256 bytes. Control characters are refused. These annotations
-do not authenticate a remote robot, project, user or execution, and changing
-them does not change the grant's network authority.
+- `host` matches the name the app asked for: an exact name, or a `*.` suffix
+  that matches subdomains only. It never matches a request that names an IP
+  address.
+- `network` matches the resolved address: an address or a CIDR range.
+- `ports` is optional. Without it, any port is allowed.
 
-Write a complete replacement to a temporary file in the protected grant
-directory, set its owner to root and mode to `0600`, then rename it over
-`grants.json`. Use a local filesystem and an atomic replacement. Do not edit
-the active file in place. Every complete update must increase `revision`.
-Reusing a revision with different contents or rolling it back invalidates the
-authority. A read that observes a changed inode or modified file is refused.
+The allowlist adds to the device-network protection. It never replaces it.
 
-There is no automatic grant catalog exposed to apps. Give the app its selected
-grant ID through an explicit deployment parameter or other approved
-configuration. Keep API credentials separate from grant IDs and audit labels.
+Edit the policy file as root for protected ranges and the allowlist, then restart
+`r2kernel-resourced`.
 
-## Open the connection in the app
+## Check the state
 
-Python and C++ expose the same operation. Call it after the administrator has
-published the grant for this execution.
+Control's status reports the uplink under
+`resource_service_status.service.app_uplink`:
+
+```bash
+curl -s http://127.0.0.1:8001/api/v1/control/status
+```
+
+| Field | Meaning |
+| --- | --- |
+| `configured`, `mode` | Whether the policy has `app_uplink`, and its mode. |
+| `available`, `error` | `false` while the broker cannot read the installed gateway declarations, for example when the package store is missing. New connections, and requests not yet handed over, are then refused with `uplink_unavailable`. |
+| `eligible_interfaces` | Interfaces apps may use now. |
+| `excluded_interfaces` | Excluded interfaces, each with its `reason` and, for a claim, its `package`. |
+| `protected_networks` | Protected ranges, with their `source`: `gateway`, `operator` or `excluded_interface`. |
+| `allowlist` | Whether `allowed_destinations` is set. |
+| `effective_max_connections` | Present when the broker's file-descriptor limit allows fewer connections than `max_connections`. |
+| `connections` | Open connections, and closed ones by reason: `lease_ended`, `interface_claimed`, `network_protected`, `interface_removed`, `peer_closed` or `error`. |
+
+Exclusion reasons:
+
+| Reason | Meaning |
+| --- | --- |
+| `loopback` | The loopback interface. |
+| `link_layer_claim` | A gateway claims the interface for raw link-layer access. |
+| `exclusive_claim` | A gateway claims the interface with `mode: exclusive`. |
+| `claimed_lower_device` | The interface is stacked on a claimed one, named in `lower_device`. |
+| `undeclared_shared_claim` | A gateway shares the interface without `device_networks`. |
+| `undeclared_advisory_claim` | An advisory gateway uses the interface without `device_networks`. |
+| `operator_excluded` | The interface is in `exclude_interfaces`. |
+| `not_listed` | `explicit` mode does not list the interface. |
+| `not_found` | `explicit` mode lists an interface that does not exist. |
+
+## Open a connection from an app
+
+**Python.** The broker resolves `host`, so pass the name, not an address you
+resolved yourself:
 
 ```python
-from r2kernel.core import ResourceBrokerClient
+from r2kernel.core.resource import ResourceBrokerClient
 
-opened = ResourceBrokerClient().open_approved_tcp_stream(
-    grant_id="robot-supervisor-control",
-)
-try:
-    stream = opened.socket
-    # Pass stream to the protocol client that supports an existing socket.
-finally:
-    opened.close()
+broker = ResourceBrokerClient()
+result = broker.open_uplink_tcp("api.example.com", 443, tls=True)
+sock = result.socket          # TLS-wrapped stream
+sock.sendall(b"GET /health HTTP/1.1\r\nHost: api.example.com\r\nConnection: close\r\n\r\n")
+print(sock.recv(4096))
+sock.close()
 ```
 
-```cpp
-#include "r2kernel/core/resource_broker_client.hpp"
+**asyncio.**
 
-auto opened = r2kernel::core::ResourceBrokerClient().open_approved_tcp_stream(
-    "robot-supervisor-control");
-// Pass opened.socket to a protocol client that accepts an existing descriptor.
-opened.close();
+```python
+reader, writer = await broker.open_uplink_connection("api.example.com", 443, tls=True)
 ```
 
-Both SDKs require a root broker peer and validate the grant ID, lease ID,
-execution ID and actual connected Unix stream descriptor. An invalid response
-closes the received descriptor. Requests are sent once. A transport failure is
-not permission to replay a mutation or bypass the broker.
+**C++.** `open_uplink_tcp(UplinkTcpOptions{...})` returns the connected
+descriptor. TLS is left to your library.
 
-The stream carries application bytes. TLS, certificate verification, API
-authentication and the remote service's authorization remain the application's
-responsibility. A client that wraps the socket in TLS must use the expected
-server name and verify its certificate. Receiving a connected stream does not
-prove that the peer is an authorized robot controller.
+The Python and C++ SDK READMEs have complete examples, including
+`http.client`, `websockets` and a C++ descriptor example. See also the [SDK
+reference](../reference/subsystem-sdk-reference.md).
 
-When the peer is another robot's Host Control API, configure its reachable
-listener and API authorization separately. Follow
-[Web and API Security](web-and-api-security.md) on that robot.
+**Library choice.** A library that creates its own sockets cannot work inside
+the sandbox. Use a library that accepts a connected socket or descriptor.
 
-## Renew or revoke
+**Timeout.** The default is 10 s. The broker shortens a longer timeout to the
+host's `max_connect_timeout_ms`, which defaults to 30 s.
 
-For renewal, publish a higher document revision and extend the grant's
-`expires_at` within `max_grant_ttl_seconds`. Keep its execution identity and
-network authority unchanged. Reading the same expiry repeatedly cannot extend
-its monotonic lifetime. Change the endpoint or execution by issuing a new
-grant and opening a new connection.
+**Names.** The broker resolves names with the system resolver, so `/etc/hosts`,
+mDNS and the DNS search list work as for any program. Every resolved address is
+checked. An app has at most two name lookups in flight. A lookup that outlives
+its timeout still counts until the resolver returns. Requests for IP addresses
+never wait behind lookups.
 
-To revoke one grant, remove it and publish a higher revision. To revoke all
-grants, publish a higher revision with `"grants": []`. Deleting or making the
-file invalid also causes the broker to fail closed. Restore service with a
-valid higher-revision document.
+### Errors
 
-The broker checks authority during connection setup, descriptor handoff and
-relay progress. Removal, expiry, source-process exit, lease termination or
-unavailable/stale authority shuts down the retained endpoints. This affects
-duplicated app descriptors too. Grant polling has a bounded propagation delay,
-and bytes already delivered cannot be retracted.
+| Code | Meaning |
+| --- | --- |
+| `app_uplink_off` | The host's mode is `off`, or the uplink is not configured. |
+| `uplink_role_refused` | Only `role: app` packages may use the uplink. |
+| `destination_not_allowed` | An allowlist is set and the destination is not on it. |
+| `destination_blocked` | Every address is blocked or only reachable through an excluded interface. The message gives the reason for each address. |
+| `uplink_unavailable` | The broker could not determine the device networks. It fails closed. |
+| `resolve_failed` | The name did not resolve. |
+| `connect_timeout` | The timeout ran out. |
+| `connect_failed` | Every connection attempt failed. |
+| `uplink_limit` | A connection limit is reached, or the app already has two name lookups in flight. |
+| `invalid_request` | The host, port or timeout is malformed. |
 
-An administrator policy change requires a broker restart. Root remains trusted
-to control the host, policy, package cache and clock. R2Kernel does not supply a
-fleet identity service, remote robot discovery or a grant issuer for another
-product. Build those policies above this exact-execution connection boundary.
+## Fleet control
+
+A fleet-control app on a control PC can call the Host API of the robots it
+manages through the uplink. Each robot's Control must then be reachable from the
+control PC:
+
+- Set `control.api_host` to an address on that network.
+- Protect the API as described in [Web and API Security](web-and-api-security.md).
+
+The robots answer through the same connection, so they need no uplink of their
+own for this.
+
+## Upgrading from approved streams
+
+Earlier 1.0.0 candidates offered per-execution grants:
+`open_approved_tcp_stream`, the `outbound_tcp` policy and a grants file. They
+are removed.
+
+- The installer deletes `outbound_tcp` from the policy on upgrade and reports
+  it.
+- `r2kernel-resourced` refuses to start while the key is still present.
+- Apps move to `open_uplink_tcp(host, port)`.

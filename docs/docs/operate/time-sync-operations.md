@@ -141,9 +141,14 @@ PHC/system offset and refuses to start `phc2sys`, but a software follower with
 `sync_system_clock: true` steps `CLOCK_REALTIME` by 37 s; keep
 `sync_system_clock: false` on software followers until every host is upgraded.
 
-Run the domain on its own `time_sync.domain` when other PTP
-masters share the network: client-only mode (`-s`) stops a follower from
-becoming a master but not from following the best master it sees on its domain.
+`time_sync.domain` defaults to 24, not IEEE 1588's default domain 0, so a host
+that leads (`--serverOnly 1`) does not announce itself to existing PTP equipment.
+Keep every R2Kernel host of a deployment on the same domain, and choose another
+one before registering the system services when other masters already use 24:
+client-only mode (`-s`) stops a follower from becoming a master but not from
+following the best master it sees on its domain. Builds before this change
+defaulted to domain 0; set `time_sync.domain: 0` explicitly to keep a mixed
+deployment on it until every host is upgraded.
 `time_sync.priority1` and `time_sync.priority2` are passed to `ptp4l` when they
 differ from 128; a lower `priority1` on the leader makes it win that selection.
 
@@ -290,6 +295,10 @@ warning, each stating why the status was rejected.
 - Control writes the time-sync service override only when its content changes.
   If the configuration is edited afterwards, the override becomes stale and the
   service ignores it.
+- The override carries time-sync values only. The root supervisor takes the
+  programs it runs (`ptp4l_bin`, `phc2sys_bin`, `pmc_bin`), their extra
+  arguments, `ptp4l_config` and `log_dir` from the root-owned configuration,
+  never from the override that the Control account writes.
 
 ## 5. Recovery And Failure Cases
 

@@ -13,8 +13,9 @@ deployment targets.
 
 The public subsystem SDKs are Python and C++. They expose the same features and
 validation rules; see the [Subsystem SDK Reference](subsystem-sdk-reference.md)
-for naming differences. No other language SDK is published. The Core C ABI is
-the low-level interface used by those SDKs.
+for naming differences. No other language SDK is published. The C ABI of the
+communication library `libr2kernel_comm` (`r2kernel_comm.h`,
+`r2kernel_comm_control.h`) is the low-level interface used by those SDKs.
 
 Managed execution needs the Linux authority prerequisites, including a delegated
 cgroup v2 subtree and the supported process/descriptor facilities. Check

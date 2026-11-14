@@ -157,8 +157,10 @@ useful for scripts, debug sessions, and direct daemon launches.
 Linux installs additionally provide shell helpers.
 
 - `r2kernel-timesync-install` - install `linuxptp` / `ethtool` prerequisites.
-- `r2kernel-device-policy-install` - install R2Kernel udev serial/USB device-node
-  policy.
+- `r2kernel-device-policy-install` - install the optional R2Kernel udev policy
+  that gives the serial ports to group `r2kernel-device`. Prefer
+  `r2kernel system install --device-policy install`, which also records the
+  ports' previous owner, group and mode for the uninstaller.
 - `r2kernel-system-service-install` - register `r2kernel-resourced.service`
   and `r2kernel-timesyncd.service`, and with the Control service
   `r2kernel-control.service` plus the root-only helpers
@@ -177,6 +179,13 @@ r2kernel package build ./packages/app --out ./build/packages/app --force
 `--force` replaces only a distinct output directory. Equal paths and overlap in
 either direction, including resolved aliases, are refused before anything is
 deleted. It cannot be used to build over the source or one of its ancestors.
+
+`build` validates the package, copies the directory and validates the copy. It
+leaves out version-control metadata (`.git`, `.hg`, `.svn`) and Python caches
+(`__pycache__`, `.pytest_cache`) at any depth and lists them under `skipped`
+in its report. Everything else is copied, including directories named `build`
+or `target`. A symbolic link or special file fails the build, because installed
+package code may hold only real files and directories.
 
 Control's package replacement and uninstall guards use the broker-validated live
 instance set, including CLI-launched instances; stale registry state is not proof
@@ -242,12 +251,11 @@ recorded launch binding intents and the result for each requirement.
 declaration supersedes the previous lease's intent for that subsystem. A
 foreground `launch run` treats SIGINT, SIGTERM and SIGHUP (a closed terminal or
 SSH session) alike: it terminates the package's scope, reaps the package process
-and releases the lease. An approved outbound app, or an execution account
-mapping, uses broker-owned foreground execution. That mode requires a session
+and releases the lease. An execution account mapping uses broker-owned
+foreground execution. That mode requires a session
 without a controlling terminal and without terminal stdio. Interactive terminal
 job control is not supported there, so the CLI refuses the launch before
-starting a package. Use `--detach` from a terminal. Enabling an outbound app
-does not change the foreground route of unrelated packages.
+starting a package. Use `--detach` from a terminal.
 
 `r2kernel launch` replaces itself with
 `r2kernel-launch`, as the other `r2kernel` commands that run a runtime command

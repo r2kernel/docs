@@ -288,7 +288,10 @@ larger than 65,507 bytes is replaced by a short error that names the local Unix
 control socket, and a UDP error text longer than 256 bytes is replaced by a
 fixed message, so an error reply never quotes a long request value. Remote
 logical-clock time sync probes a leader's `control.udp_port`, so a multi-host
-logical clock needs that bind reachable.
+logical clock needs that bind reachable. A probe takes only a reply that comes
+from the leader's address and echoes the probe's own send time. The exchange is
+not authenticated, so a host that can forge the leader's address can still
+skew the logical clock; keep it on a trusted network.
 
 ```text
 r2kernel config set security.enabled true
@@ -296,9 +299,11 @@ r2kernel config set security.api.require_auth true
 r2kernel config set security.network.allow_cidrs '["127.0.0.1/32", "::1/128", "192.0.2.0/24"]'
 ```
 
-Store API tokens and web passwords in private files owned by the Control service
-user, or in service-managed environment variables, rather than inline YAML. See
-[Web and API Security](web-and-api-security.md) for the full pattern.
+Store API keys in the private key file (`security.api.tokens_file`) and the web
+password in a private file or a service-managed environment variable, rather
+than inline YAML. The key named by `security.api.token_env` is also sent to
+federation peers. See [Web and API Security](web-and-api-security.md#api-keys)
+for the file rules and the full pattern.
 
 The `192.0.2.0/24` network is an example documentation range: replace it with
 your actual restricted management network. For remote deployment, select only

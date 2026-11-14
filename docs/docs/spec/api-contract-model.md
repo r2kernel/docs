@@ -56,6 +56,41 @@ time without proliferating stamped payload variants.
 - a provider must reject or transform an unsupported frame according to its API
   contract
 
+### Frame Policies
+
+`frames.policy` states where an API's frames come from. Most contracts use
+`endpoint_declared`: the endpoint semantics or the message identify the frames,
+and the runtime keeps the declaration as metadata.
+
+`spatial_ports` binds frame fields of the published messages to the provider's
+spatial ports. `frames.ports` maps each such field to a port name.
+
+```yaml
+frames:
+  policy: spatial_ports
+  ports:
+    frame_id: reference
+    child_frame_id: body
+  dynamic_frames: owning_message_only
+```
+
+The SDK loaders refuse a `spatial_ports` declaration whose `ports` mapping is
+missing or empty, or whose mapped field is not a required `string` field of
+every message the API publishes. For such an API:
+
+- a provider declares each mapped port as an `export` port with a literal
+  `frame` in its `subsystem.yaml`; a missing port, an `import` port and a
+  `source` alias are refused when the manifest loads
+- each sample carries exactly that port's frame in the mapped field; the SDK
+  refuses a mismatched sample on publish with `frame_mismatch` and does not
+  send it, and the codec refuses a sample without the field
+- a consumer takes the frame from the sample, or from the provider's port in
+  the runtime frame graph, never from its own configuration or a default
+
+`api.locomotion.odometry.v2` is the first `spatial_ports` contract. A relay
+that republishes another subsystem's samples is not supported for such an API:
+the frames must come from the provider's own manifest.
+
 ## Contract Metadata
 
 Public API contracts declare `frames`, `timing`, `state_model`,

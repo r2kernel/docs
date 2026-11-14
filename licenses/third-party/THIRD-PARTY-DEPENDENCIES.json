@@ -3393,41 +3393,6 @@
           "graph": "installer",
           "role": "runtime-bundled",
           "target": "linux-x86_64"
-        }
-      ],
-      "license_relative_paths": [
-        "by-package/cargo/bumpalo-3.20.2/LICENSE-APACHE",
-        "by-package/cargo/bumpalo-3.20.2/LICENSE-MIT"
-      ],
-      "license_sha256": {
-        "by-package/cargo/bumpalo-3.20.2/LICENSE-APACHE": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
-        "by-package/cargo/bumpalo-3.20.2/LICENSE-MIT": "65f94e99ddaf4f5d1782a6dae23f35d4293a9a01444a13135a6887017d353cee"
-      },
-      "name": "bumpalo",
-      "origin": "Cargo locked production graph",
-      "products": [
-        "installer"
-      ],
-      "spdx": "MIT OR Apache-2.0",
-      "targets": [
-        "linux-aarch64",
-        "linux-x86_64"
-      ],
-      "upstream_url": "https://github.com/fitzgen/bumpalo",
-      "version": "3.20.2"
-    },
-    {
-      "distribution_role": "bundled runtime dependency",
-      "graph_memberships": [
-        {
-          "graph": "installer",
-          "role": "runtime-bundled",
-          "target": "linux-aarch64"
-        },
-        {
-          "graph": "installer",
-          "role": "runtime-bundled",
-          "target": "linux-x86_64"
         },
         {
           "graph": "runtime-backend",
@@ -3585,6 +3550,41 @@
       ],
       "upstream_url": "https://github.com/rust-lang/cfg-if",
       "version": "1.0.4"
+    },
+    {
+      "distribution_role": "bundled runtime dependency",
+      "graph_memberships": [
+        {
+          "graph": "installer",
+          "role": "runtime-bundled",
+          "target": "linux-aarch64"
+        },
+        {
+          "graph": "installer",
+          "role": "runtime-bundled",
+          "target": "linux-x86_64"
+        }
+      ],
+      "license_relative_paths": [
+        "by-package/cargo/chacha20-0.10.2/LICENSE-APACHE",
+        "by-package/cargo/chacha20-0.10.2/LICENSE-MIT"
+      ],
+      "license_sha256": {
+        "by-package/cargo/chacha20-0.10.2/LICENSE-APACHE": "a9040321c3712d8fd0b09cf52b17445de04a23a10165049ae187cd39e5c86be5",
+        "by-package/cargo/chacha20-0.10.2/LICENSE-MIT": "b8c6939380a400f53e11923d50fcc4dd2fa1ba8339fd9d04cda38a0251b6c9b0"
+      },
+      "name": "chacha20",
+      "origin": "Cargo locked production graph",
+      "products": [
+        "installer"
+      ],
+      "spdx": "MIT OR Apache-2.0",
+      "targets": [
+        "linux-aarch64",
+        "linux-x86_64"
+      ],
+      "upstream_url": "https://github.com/RustCrypto/stream-ciphers",
+      "version": "0.10.2"
     },
     {
       "distribution_role": "bundled runtime dependency",
@@ -3850,6 +3850,35 @@
       ],
       "upstream_url": "https://github.com/RustCrypto/utils",
       "version": "0.2.17"
+    },
+    {
+      "distribution_role": "bundled runtime dependency",
+      "graph_memberships": [
+        {
+          "graph": "installer",
+          "role": "runtime-bundled",
+          "target": "linux-x86_64"
+        }
+      ],
+      "license_relative_paths": [
+        "by-package/cargo/cpufeatures-0.3.1/LICENSE-APACHE",
+        "by-package/cargo/cpufeatures-0.3.1/LICENSE-MIT"
+      ],
+      "license_sha256": {
+        "by-package/cargo/cpufeatures-0.3.1/LICENSE-APACHE": "a9040321c3712d8fd0b09cf52b17445de04a23a10165049ae187cd39e5c86be5",
+        "by-package/cargo/cpufeatures-0.3.1/LICENSE-MIT": "73b9dc2e79c7308998dd30296e073aefaefb944a68fb89aa412c23c0edcabcaa"
+      },
+      "name": "cpufeatures",
+      "origin": "Cargo locked production graph",
+      "products": [
+        "installer"
+      ],
+      "spdx": "MIT OR Apache-2.0",
+      "targets": [
+        "linux-x86_64"
+      ],
+      "upstream_url": "https://github.com/RustCrypto/utils",
+      "version": "0.3.1"
     },
     {
       "distribution_role": "bundled runtime dependency",
@@ -5024,16 +5053,6 @@
       "distribution_role": "bundled runtime dependency",
       "graph_memberships": [
         {
-          "graph": "installer",
-          "role": "runtime-bundled",
-          "target": "linux-aarch64"
-        },
-        {
-          "graph": "installer",
-          "role": "runtime-bundled",
-          "target": "linux-x86_64"
-        },
-        {
           "graph": "runtime-backend",
           "role": "runtime-bundled",
           "target": "linux-aarch64"
@@ -5065,9 +5084,6 @@
       "name": "getrandom",
       "origin": "Cargo locked production graph",
       "products": [
-        "cpp-sdk",
-        "installer",
-        "python-wheel",
         "runtime"
       ],
       "spdx": "MIT OR Apache-2.0",
@@ -8067,16 +8083,6 @@
       "distribution_role": "bundled runtime dependency",
       "graph_memberships": [
         {
-          "graph": "installer",
-          "role": "runtime-bundled",
-          "target": "linux-aarch64"
-        },
-        {
-          "graph": "installer",
-          "role": "runtime-bundled",
-          "target": "linux-x86_64"
-        },
-        {
           "graph": "runtime-backend",
           "role": "runtime-bundled",
           "target": "linux-aarch64"
@@ -8098,7 +8104,6 @@
       "name": "ppv-lite86",
       "origin": "Cargo locked production graph",
       "products": [
-        "installer",
         "runtime"
       ],
       "spdx": "MIT OR Apache-2.0",
@@ -8159,12 +8164,12 @@
         }
       ],
       "license_relative_paths": [
-        "by-package/cargo/quinn-proto-0.11.14/LICENSE-APACHE",
-        "by-package/cargo/quinn-proto-0.11.14/LICENSE-MIT"
+        "by-package/cargo/quinn-proto-0.11.19/LICENSE-APACHE",
+        "by-package/cargo/quinn-proto-0.11.19/LICENSE-MIT"
       ],
       "license_sha256": {
-        "by-package/cargo/quinn-proto-0.11.14/LICENSE-APACHE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
-        "by-package/cargo/quinn-proto-0.11.14/LICENSE-MIT": "4b2d0aca6789fa39e03d6738e869ea0988cceba210ca34ebb59c15c463e93a04"
+        "by-package/cargo/quinn-proto-0.11.19/LICENSE-APACHE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+        "by-package/cargo/quinn-proto-0.11.19/LICENSE-MIT": "4b2d0aca6789fa39e03d6738e869ea0988cceba210ca34ebb59c15c463e93a04"
       },
       "name": "quinn-proto",
       "origin": "Cargo locked production graph",
@@ -8177,7 +8182,7 @@
         "linux-x86_64"
       ],
       "upstream_url": "https://github.com/quinn-rs/quinn",
-      "version": "0.11.14"
+      "version": "0.11.19"
     },
     {
       "distribution_role": "bundled runtime dependency",
@@ -8213,6 +8218,41 @@
       ],
       "upstream_url": "https://github.com/quinn-rs/quinn",
       "version": "0.5.14"
+    },
+    {
+      "distribution_role": "bundled runtime dependency",
+      "graph_memberships": [
+        {
+          "graph": "installer",
+          "role": "runtime-bundled",
+          "target": "linux-aarch64"
+        },
+        {
+          "graph": "installer",
+          "role": "runtime-bundled",
+          "target": "linux-x86_64"
+        }
+      ],
+      "license_relative_paths": [
+        "by-package/cargo/rand-0.10.3/LICENSE-APACHE",
+        "by-package/cargo/rand-0.10.3/LICENSE-MIT"
+      ],
+      "license_sha256": {
+        "by-package/cargo/rand-0.10.3/LICENSE-APACHE": "35242e7a83f69875e6edeff02291e688c97caafe2f8902e4e19b49d3e78b4cab",
+        "by-package/cargo/rand-0.10.3/LICENSE-MIT": "209fbbe0ad52d9235e37badf9cadfe4dbdc87203179c0899e738b39ade42177b"
+      },
+      "name": "rand",
+      "origin": "Cargo locked production graph",
+      "products": [
+        "installer"
+      ],
+      "spdx": "MIT OR Apache-2.0",
+      "targets": [
+        "linux-aarch64",
+        "linux-x86_64"
+      ],
+      "upstream_url": "https://github.com/rust-random/rand",
+      "version": "0.10.3"
     },
     {
       "distribution_role": "bundled runtime dependency",
@@ -8255,53 +8295,6 @@
       "distribution_role": "bundled runtime dependency",
       "graph_memberships": [
         {
-          "graph": "installer",
-          "role": "runtime-bundled",
-          "target": "linux-aarch64"
-        },
-        {
-          "graph": "installer",
-          "role": "runtime-bundled",
-          "target": "linux-x86_64"
-        }
-      ],
-      "license_relative_paths": [
-        "by-package/cargo/rand-0.9.4/COPYRIGHT",
-        "by-package/cargo/rand-0.9.4/LICENSE-APACHE",
-        "by-package/cargo/rand-0.9.4/LICENSE-MIT"
-      ],
-      "license_sha256": {
-        "by-package/cargo/rand-0.9.4/COPYRIGHT": "90eb64f0279b0d9432accfa6023ff803bc4965212383697eee27a0f426d5f8d5",
-        "by-package/cargo/rand-0.9.4/LICENSE-APACHE": "35242e7a83f69875e6edeff02291e688c97caafe2f8902e4e19b49d3e78b4cab",
-        "by-package/cargo/rand-0.9.4/LICENSE-MIT": "209fbbe0ad52d9235e37badf9cadfe4dbdc87203179c0899e738b39ade42177b"
-      },
-      "name": "rand",
-      "origin": "Cargo locked production graph",
-      "products": [
-        "installer"
-      ],
-      "spdx": "MIT OR Apache-2.0",
-      "targets": [
-        "linux-aarch64",
-        "linux-x86_64"
-      ],
-      "upstream_url": "https://github.com/rust-random/rand",
-      "version": "0.9.4"
-    },
-    {
-      "distribution_role": "bundled runtime dependency",
-      "graph_memberships": [
-        {
-          "graph": "installer",
-          "role": "runtime-bundled",
-          "target": "linux-aarch64"
-        },
-        {
-          "graph": "installer",
-          "role": "runtime-bundled",
-          "target": "linux-x86_64"
-        },
-        {
           "graph": "runtime-backend",
           "role": "runtime-bundled",
           "target": "linux-aarch64"
@@ -8325,7 +8318,6 @@
       "name": "rand_chacha",
       "origin": "Cargo locked production graph",
       "products": [
-        "installer",
         "runtime"
       ],
       "spdx": "MIT OR Apache-2.0",
@@ -8335,6 +8327,41 @@
       ],
       "upstream_url": "https://github.com/rust-random/rand",
       "version": "0.9.0"
+    },
+    {
+      "distribution_role": "bundled runtime dependency",
+      "graph_memberships": [
+        {
+          "graph": "installer",
+          "role": "runtime-bundled",
+          "target": "linux-aarch64"
+        },
+        {
+          "graph": "installer",
+          "role": "runtime-bundled",
+          "target": "linux-x86_64"
+        }
+      ],
+      "license_relative_paths": [
+        "by-package/cargo/rand_core-0.10.1/LICENSE-APACHE",
+        "by-package/cargo/rand_core-0.10.1/LICENSE-MIT"
+      ],
+      "license_sha256": {
+        "by-package/cargo/rand_core-0.10.1/LICENSE-APACHE": "6df43f6f4b5d4587f3d8d71e45532c688fd168afa5fe89d571cb32fa09c4ef51",
+        "by-package/cargo/rand_core-0.10.1/LICENSE-MIT": "8b6e9feec03e7c9a5facb26855cecd31662bf989b636bcfe79521bdf8ac863f0"
+      },
+      "name": "rand_core",
+      "origin": "Cargo locked production graph",
+      "products": [
+        "installer"
+      ],
+      "spdx": "MIT OR Apache-2.0",
+      "targets": [
+        "linux-aarch64",
+        "linux-x86_64"
+      ],
+      "upstream_url": "https://github.com/rust-random/rand_core",
+      "version": "0.10.1"
     },
     {
       "distribution_role": "bundled runtime dependency",
@@ -8389,16 +8416,6 @@
       "distribution_role": "bundled runtime dependency",
       "graph_memberships": [
         {
-          "graph": "installer",
-          "role": "runtime-bundled",
-          "target": "linux-aarch64"
-        },
-        {
-          "graph": "installer",
-          "role": "runtime-bundled",
-          "target": "linux-x86_64"
-        },
-        {
           "graph": "runtime-backend",
           "role": "runtime-bundled",
           "target": "linux-aarch64"
@@ -8422,7 +8439,6 @@
       "name": "rand_core",
       "origin": "Cargo locked production graph",
       "products": [
-        "installer",
         "runtime"
       ],
       "spdx": "MIT OR Apache-2.0",
@@ -8432,6 +8448,41 @@
       ],
       "upstream_url": "https://github.com/rust-random/rand",
       "version": "0.9.5"
+    },
+    {
+      "distribution_role": "bundled runtime dependency",
+      "graph_memberships": [
+        {
+          "graph": "installer",
+          "role": "runtime-bundled",
+          "target": "linux-aarch64"
+        },
+        {
+          "graph": "installer",
+          "role": "runtime-bundled",
+          "target": "linux-x86_64"
+        }
+      ],
+      "license_relative_paths": [
+        "by-package/cargo/rand_pcg-0.10.2/LICENSE-APACHE",
+        "by-package/cargo/rand_pcg-0.10.2/LICENSE-MIT"
+      ],
+      "license_sha256": {
+        "by-package/cargo/rand_pcg-0.10.2/LICENSE-APACHE": "6df43f6f4b5d4587f3d8d71e45532c688fd168afa5fe89d571cb32fa09c4ef51",
+        "by-package/cargo/rand_pcg-0.10.2/LICENSE-MIT": "2234e3cefee876aeb686ad89e978bdb07bf118a1186ab1cf161bcdf69d4b4f57"
+      },
+      "name": "rand_pcg",
+      "origin": "Cargo locked production graph",
+      "products": [
+        "installer"
+      ],
+      "spdx": "MIT OR Apache-2.0",
+      "targets": [
+        "linux-aarch64",
+        "linux-x86_64"
+      ],
+      "upstream_url": "https://github.com/rust-random/rngs",
+      "version": "0.10.2"
     },
     {
       "distribution_role": "bundled runtime dependency",
@@ -8827,43 +8878,6 @@
       "distribution_role": "bundled runtime dependency",
       "graph_memberships": [
         {
-          "graph": "installer",
-          "role": "runtime-bundled",
-          "target": "linux-aarch64"
-        },
-        {
-          "graph": "installer",
-          "role": "runtime-bundled",
-          "target": "linux-x86_64"
-        }
-      ],
-      "license_relative_paths": [
-        "by-package/cargo/rustls-0.23.39/LICENSE-APACHE",
-        "by-package/cargo/rustls-0.23.39/LICENSE-ISC",
-        "by-package/cargo/rustls-0.23.39/LICENSE-MIT"
-      ],
-      "license_sha256": {
-        "by-package/cargo/rustls-0.23.39/LICENSE-APACHE": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
-        "by-package/cargo/rustls-0.23.39/LICENSE-ISC": "7cfafc877eccc46c0e346ccbaa5c51bb6b894d2b818e617d970211e232785ad4",
-        "by-package/cargo/rustls-0.23.39/LICENSE-MIT": "709e3175b4212f7b13aa93971c9f62ff8c69ec45ad8c6532a7e0c41d7a7d6f8c"
-      },
-      "name": "rustls",
-      "origin": "Cargo locked production graph",
-      "products": [
-        "installer"
-      ],
-      "spdx": "Apache-2.0 OR ISC OR MIT",
-      "targets": [
-        "linux-aarch64",
-        "linux-x86_64"
-      ],
-      "upstream_url": "https://github.com/rustls/rustls",
-      "version": "0.23.39"
-    },
-    {
-      "distribution_role": "bundled runtime dependency",
-      "graph_memberships": [
-        {
           "graph": "runtime-backend",
           "role": "runtime-bundled",
           "target": "linux-aarch64"
@@ -8896,6 +8910,43 @@
       ],
       "upstream_url": "https://github.com/rustls/rustls",
       "version": "0.23.45"
+    },
+    {
+      "distribution_role": "bundled runtime dependency",
+      "graph_memberships": [
+        {
+          "graph": "installer",
+          "role": "runtime-bundled",
+          "target": "linux-aarch64"
+        },
+        {
+          "graph": "installer",
+          "role": "runtime-bundled",
+          "target": "linux-x86_64"
+        }
+      ],
+      "license_relative_paths": [
+        "by-package/cargo/rustls-0.23.46/LICENSE-APACHE",
+        "by-package/cargo/rustls-0.23.46/LICENSE-ISC",
+        "by-package/cargo/rustls-0.23.46/LICENSE-MIT"
+      ],
+      "license_sha256": {
+        "by-package/cargo/rustls-0.23.46/LICENSE-APACHE": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+        "by-package/cargo/rustls-0.23.46/LICENSE-ISC": "7cfafc877eccc46c0e346ccbaa5c51bb6b894d2b818e617d970211e232785ad4",
+        "by-package/cargo/rustls-0.23.46/LICENSE-MIT": "709e3175b4212f7b13aa93971c9f62ff8c69ec45ad8c6532a7e0c41d7a7d6f8c"
+      },
+      "name": "rustls",
+      "origin": "Cargo locked production graph",
+      "products": [
+        "installer"
+      ],
+      "spdx": "Apache-2.0 OR ISC OR MIT",
+      "targets": [
+        "linux-aarch64",
+        "linux-x86_64"
+      ],
+      "upstream_url": "https://github.com/rustls/rustls",
+      "version": "0.23.46"
     },
     {
       "distribution_role": "bundled runtime dependency",
@@ -9010,39 +9061,6 @@
       "distribution_role": "bundled runtime dependency",
       "graph_memberships": [
         {
-          "graph": "installer",
-          "role": "runtime-bundled",
-          "target": "linux-aarch64"
-        },
-        {
-          "graph": "installer",
-          "role": "runtime-bundled",
-          "target": "linux-x86_64"
-        }
-      ],
-      "license_relative_paths": [
-        "by-package/cargo/rustls-webpki-0.103.13/LICENSE"
-      ],
-      "license_sha256": {
-        "by-package/cargo/rustls-webpki-0.103.13/LICENSE": "5b698ca13897be3afdb7174256fa1574f8c6892b8bea1a66dd6469d3fe27885a"
-      },
-      "name": "rustls-webpki",
-      "origin": "Cargo locked production graph",
-      "products": [
-        "installer"
-      ],
-      "spdx": "ISC",
-      "targets": [
-        "linux-aarch64",
-        "linux-x86_64"
-      ],
-      "upstream_url": "https://github.com/rustls/webpki",
-      "version": "0.103.13"
-    },
-    {
-      "distribution_role": "bundled runtime dependency",
-      "graph_memberships": [
-        {
           "graph": "runtime-backend",
           "role": "runtime-bundled",
           "target": "linux-aarch64"
@@ -9071,6 +9089,39 @@
       ],
       "upstream_url": "https://github.com/rustls/webpki",
       "version": "0.103.15"
+    },
+    {
+      "distribution_role": "bundled runtime dependency",
+      "graph_memberships": [
+        {
+          "graph": "installer",
+          "role": "runtime-bundled",
+          "target": "linux-aarch64"
+        },
+        {
+          "graph": "installer",
+          "role": "runtime-bundled",
+          "target": "linux-x86_64"
+        }
+      ],
+      "license_relative_paths": [
+        "by-package/cargo/rustls-webpki-0.103.16/LICENSE"
+      ],
+      "license_sha256": {
+        "by-package/cargo/rustls-webpki-0.103.16/LICENSE": "5b698ca13897be3afdb7174256fa1574f8c6892b8bea1a66dd6469d3fe27885a"
+      },
+      "name": "rustls-webpki",
+      "origin": "Cargo locked production graph",
+      "products": [
+        "installer"
+      ],
+      "spdx": "ISC",
+      "targets": [
+        "linux-aarch64",
+        "linux-x86_64"
+      ],
+      "upstream_url": "https://github.com/rustls/webpki",
+      "version": "0.103.16"
     },
     {
       "distribution_role": "bundled runtime dependency",
@@ -11773,10 +11824,10 @@
         }
       ],
       "license_relative_paths": [
-        "by-package/cargo/webpki-roots-1.0.7/LICENSE"
+        "by-package/cargo/webpki-roots-1.0.11/LICENSE"
       ],
       "license_sha256": {
-        "by-package/cargo/webpki-roots-1.0.7/LICENSE": "e271993808fec50ab29350b39539cdec611a9103f827e0aa26d61da70e2d33f8"
+        "by-package/cargo/webpki-roots-1.0.11/LICENSE": "e271993808fec50ab29350b39539cdec611a9103f827e0aa26d61da70e2d33f8"
       },
       "name": "webpki-roots",
       "origin": "Cargo locked production graph",
@@ -11789,7 +11840,7 @@
         "linux-x86_64"
       ],
       "upstream_url": "https://github.com/rustls/webpki-roots",
-      "version": "1.0.7"
+      "version": "1.0.11"
     },
     {
       "distribution_role": "bundled runtime dependency",
@@ -12091,43 +12142,6 @@
         }
       ],
       "license_relative_paths": [
-        "by-package/cargo/zerocopy-0.8.48/LICENSE-APACHE",
-        "by-package/cargo/zerocopy-0.8.48/LICENSE-BSD",
-        "by-package/cargo/zerocopy-0.8.48/LICENSE-MIT"
-      ],
-      "license_sha256": {
-        "by-package/cargo/zerocopy-0.8.48/LICENSE-APACHE": "9d185ac6703c4b0453974c0d85e9eee43e6941009296bb1f5eb0b54e2329e9f3",
-        "by-package/cargo/zerocopy-0.8.48/LICENSE-BSD": "83c1763356e822adde0a2cae748d938a73fdc263849ccff6b27776dff213bd32",
-        "by-package/cargo/zerocopy-0.8.48/LICENSE-MIT": "1a2f5c12ddc934d58956aa5dbdd3255fe55fd957633ab7d0d39e4f0daa73f7df"
-      },
-      "name": "zerocopy",
-      "origin": "Cargo locked production graph",
-      "products": [
-        "installer"
-      ],
-      "spdx": "BSD-2-Clause OR Apache-2.0 OR MIT",
-      "targets": [
-        "linux-aarch64",
-        "linux-x86_64"
-      ],
-      "upstream_url": "https://github.com/google/zerocopy",
-      "version": "0.8.48"
-    },
-    {
-      "distribution_role": "bundled runtime dependency",
-      "graph_memberships": [
-        {
-          "graph": "installer",
-          "role": "runtime-bundled",
-          "target": "linux-aarch64"
-        },
-        {
-          "graph": "installer",
-          "role": "runtime-bundled",
-          "target": "linux-x86_64"
-        }
-      ],
-      "license_relative_paths": [
         "by-package/cargo/zerofrom-0.1.7/LICENSE"
       ],
       "license_sha256": {
@@ -12362,39 +12376,6 @@
           "graph": "installer",
           "role": "runtime-bundled",
           "target": "linux-x86_64"
-        }
-      ],
-      "license_relative_paths": [
-        "by-package/cargo/zip-2.4.2/LICENSE"
-      ],
-      "license_sha256": {
-        "by-package/cargo/zip-2.4.2/LICENSE": "04dc52136d82400b11df5f474949863a70a5d05d2278dec45b99c479494450a6"
-      },
-      "name": "zip",
-      "origin": "Cargo locked production graph",
-      "products": [
-        "installer"
-      ],
-      "spdx": "MIT",
-      "targets": [
-        "linux-aarch64",
-        "linux-x86_64"
-      ],
-      "upstream_url": "https://github.com/zip-rs/zip2.git",
-      "version": "2.4.2"
-    },
-    {
-      "distribution_role": "bundled runtime dependency",
-      "graph_memberships": [
-        {
-          "graph": "installer",
-          "role": "runtime-bundled",
-          "target": "linux-aarch64"
-        },
-        {
-          "graph": "installer",
-          "role": "runtime-bundled",
-          "target": "linux-x86_64"
         },
         {
           "graph": "runtime-backend",
@@ -12438,39 +12419,6 @@
       ],
       "upstream_url": "https://github.com/dtolnay/zmij",
       "version": "1.0.21"
-    },
-    {
-      "distribution_role": "bundled runtime dependency",
-      "graph_memberships": [
-        {
-          "graph": "installer",
-          "role": "runtime-bundled",
-          "target": "linux-aarch64"
-        },
-        {
-          "graph": "installer",
-          "role": "runtime-bundled",
-          "target": "linux-x86_64"
-        }
-      ],
-      "license_relative_paths": [
-        "by-package/cargo/zopfli-0.8.3/COPYING"
-      ],
-      "license_sha256": {
-        "by-package/cargo/zopfli-0.8.3/COPYING": "018b1cb87efdf7a04c2fcc13d57ed63f62149113fb207b27ea13430d64f13513"
-      },
-      "name": "zopfli",
-      "origin": "Cargo locked production graph",
-      "products": [
-        "installer"
-      ],
-      "spdx": "Apache-2.0",
-      "targets": [
-        "linux-aarch64",
-        "linux-x86_64"
-      ],
-      "upstream_url": "https://github.com/zopfli-rs/zopfli",
-      "version": "0.8.3"
     }
   ],
   "description": "Public inventory of bundled third-party dependencies and build-only dependencies for Linux release products.",
@@ -12606,18 +12554,18 @@
   ],
   "schema_version": 1,
   "source_file_sha256": {
-    "runtime/control/backend/Cargo.lock": "7311734450e2f95a34a25f7d8ac942033badda68a400f452712dae0959958737",
-    "runtime/control/backend/Cargo.toml": "2446b2160fee081732b0317a55523dccad4bcc5b5f4b4685d49ef185936850ff",
+    "runtime/control/backend/Cargo.lock": "48fdd9b9da504243ffb8b72fd28ac6e7c456e8bf99230dc090f58126019645ce",
+    "runtime/control/backend/Cargo.toml": "dd3fe6f3e5b3ab7400b45855f99e2dfc509a835e02771627ee90441886a2cec4",
     "runtime/control/frontend/package-lock.json": "2b56973636ffc7464334877d729ed5a71c15a966977741162612646cc763f601",
     "runtime/control/frontend/package.json": "1f6331daa1e43d60e8de67fe982c4c8d3ce9fd3037e018f8a2419002a41703ed",
     "runtime/control/frontend/vite.config.js": "a77d7b9ed0ce3e8afed82f4e39c75b9488774b235586639661c0b1433912ea34",
-    "runtime/core/Cargo.lock": "a8b42912fd6dc3d64242df52affb18c553faa362001a8cc055f1de7aa4e47796",
-    "runtime/core/Cargo.toml": "fb6bba3447ec46304bfb5ea1576fac857cdb0a6ab4fbda618511117ab536b257",
-    "sdk/cpp/CMakeLists.txt": "e99f796bc3b578f237e8a95b6d810bca5d5b92f6703551b4e7903387a053f4a4",
-    "sdk/python/pyproject.toml": "76e869503c82cc108a0d4a0e080e44305ffaba3dbe1ac5871d91c6104710fe0d",
-    "tools/installer-rust/Cargo.lock": "9ab909636bf71df180c7938ec161e3fb249fe84488346ca8e20322182b6fde0b",
-    "tools/installer-rust/Cargo.toml": "f0048c0818119388225b741f5a77f1ed7e4e98764150067dbec167ac027a708b",
-    "tools/script_utils.py": "d953edaf35ad8d461a9a2fea3637d97563b99315a1b7dca628ff00edbdbf42af"
+    "runtime/core/Cargo.lock": "18067903fed0ca21b82a705c14f5a2f549914f97adc91834391fe62fcd62ef4c",
+    "runtime/core/Cargo.toml": "5225f01d4768dfaf8e95a98671ce37b5bf83a280a4d5267a6747284b59fdd9bf",
+    "sdk/cpp/CMakeLists.txt": "86a14bc6a82a303c7c83f28d760fb91284639672e9dbe15695d8ffe5d196b4f3",
+    "sdk/python/pyproject.toml": "7d94a812a045a39d7ea16193a35b41a9fd5ec7d0720896d371b54982879e7149",
+    "tools/installer-rust/Cargo.lock": "f15fbd0a54dc1b7ad439b922feec9395b56399acd0a9806e288015feb7680942",
+    "tools/installer-rust/Cargo.toml": "2013756c2178ecea62c2d4815d649f2a4d0e40668a08fced6a1643c2148f54ae",
+    "tools/script_utils.py": "1a2c8b955c9eb49bc98e8c3326c7586e915860f5a93451bc61242c5b1d76af4c"
   },
   "source_lockfiles": {
     "cpp": "tools/script_utils.py",

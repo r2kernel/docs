@@ -59,8 +59,12 @@ Stop Core and all SDK consumers before changing existing pool geometry or
 retiring storage. Then stop Resource and run:
 
 ```text
-sudo <prefix>/runtime/bin/r2kernel-resourced --config <prefix>/runtime/config.yaml --retire-shm-pools
+sudo python3 -B <prefix>/runtime/tools/managed_install.py exec --prefix <prefix> -- \
+  <prefix>/runtime/bin/r2kernel-resourced --config <prefix>/runtime/config.yaml --retire-shm-pools
 ```
+
+The `exec` wrapper supplies the service's IPC identities. Without them the
+command refuses the pool with a permission policy error.
 
 Use this supported retirement procedure only after all consumers are stopped.
 It rejects unsafe retirement and does not guess ownership of unknown storage.
@@ -89,16 +93,29 @@ Install or repair system services from the selected prefix.
 sudo <prefix>/bin/r2kernel system install --prefix <prefix>
 ```
 
-When serial, USB, or device-node packages are used, install the device policy.
+### Serial and device access
+
+Packages that declare `sandbox.devices: managed` open their devices through the
+resource service, which checks the claim and passes the open descriptor. No
+host policy is needed. A serial port (any terminal device) opened this way is
+held exclusively (`TIOCEXCL`): while the package has it open, other programs
+without `CAP_SYS_ADMIN` get `EBUSY` when they open it. The port returns to them
+when the package closes it. Programs outside R2Kernel keep their usual access,
+so R2Kernel arbitrates a port only among its own packages, as it does for CAN.
+
+The optional device policy instead gives every `ttyS*`, `ttyUSB*`, `ttyACM*` and
+`ttyAMA*` port to group `r2kernel-device` (mode 0660) with a udev rule, so
+programs outside R2Kernel, including `dialout` users, lose access to them. A
+package that opens its devices itself, without `sandbox.devices: managed`,
+needs it. Install it with the system services:
 
 ```text
-sudo <prefix>/bin/r2kernel-device-policy-install \
-  --device-group r2kernel-device \
-  --device-mode 0660
+sudo <prefix>/bin/r2kernel system install --prefix <prefix> --device-policy install
 ```
 
-Do not grant normal users broad production device access. Product hardware
-should be reached through admitted managed packages.
+The installer asks the same question (default: leave the ports to the system)
+and takes `--device-policy install|skip`. The uninstaller removes the rule and
+restores the owner, group and mode the ports had before it.
 
 ## Managed Launch
 
@@ -144,6 +161,20 @@ its package store, not only at installation. Validate, install or add to
 `packages.additional_paths` only packages whose files and spec roots you
 control.
 
+The same `r2kernel package validate`, `r2kernel launch run` (and restart),
+installation and `packages.additional_paths` reads also resolve every public
+contract of the subsystem manifest, for every role, against the package's
+`contracts.spec_roots`, the configured and installed spec roots and the
+dictionary built into the runtime; Gateway contracts keep their own check. They
+refuse a spec root that leaves the package, a differing definition of a
+standard ID, a new ID under a standard prefix and a message or API document
+whose `id` differs from its path or names another path, and then any spec
+root the runtime core itself refuses
+([Versioning and Resolution](../spec/versioning-resolution.md)). Spec documents
+are read with the 1 MiB regular-file limits above. The resource service does
+not repeat these contract checks when it prepares a launch; the SDKs apply the
+reserved-ID rule again when the subsystem starts.
+
 The resource service reads a package with the identity of the manager that
 asked for the launch: that manager's user, group and supplementary groups,
 never with more access than the requesting manager has. This covers the package directory, `package.yaml`, the subsystem
@@ -183,6 +214,14 @@ resources:
     devices: managed
 ```
 
+A gateway that shares an adapter with ordinary traffic declares the address
+ranges of its devices in `device_networks`, for example
+`device_networks: [198.51.100.0/24]` under the `enp4s0` entry above. The app
+uplink then still uses the adapter for other destinations. Without
+`device_networks`, the app uplink leaves a shared or advisory gateway adapter
+out completely. An `exclusive` or link-layer adapter is always left out. See
+[App Network Access](app-outbound-connections.md).
+
 A link-layer claim needs direct `AF_PACKET` sockets, which brokered network
 blocks, and its `CAP_NET_RAW` grant reaches CAN interfaces past brokered CAN, so
 manifest validation refuses `resources.link_layer` together with either brokered
@@ -212,7 +251,9 @@ resources:
 
 Before launching it, approve its capability for `enp5s0` in the resource
 authority policy (`link_layer_grants`; see
-[Resource Authority](../reference/resource-authority.md#approve-a-link-layer-capability-grant)).
+[Resource Authority](../reference/resource-authority.md#approve-a-link-layer-capability-grant)),
+and approve the package for `network: advisory`
+([Resource Authority](../reference/resource-authority.md#approve-advisory-networking)).
 
 ### Select the adapter per instance
 
@@ -372,9 +413,13 @@ gateway must change interface settings.
   directly or via Compound exports, must not claim device-facing resources, and
   must declare `resources.sandbox.network: brokered`
 
-Only a gateway may select `network: advisory`. It permits direct socket
-creation and does not monitor traffic or warn about undeclared connections.
-It is a trusted gateway exception, not an EtherCAT-only restriction.
+Only a gateway may select `network: advisory`, and only after root approves
+that package with `--grant-advisory-network`
+([Resource authority](../reference/resource-authority.md#approve-advisory-networking)).
+It permits direct socket creation and does not monitor traffic or warn about
+undeclared connections. The role and name in a manifest are the package's own
+statements, so root decides which package name may do this. The approval does
+not bind the package's content. It is not an EtherCAT-only restriction.
 Omitting the network setting in a role-free utility package or a gateway keeps
 the brokered socket filter enabled. A raw link-layer claim requires explicit
 `network: advisory`; omission cannot disable the filter.
@@ -383,6 +428,8 @@ A role-free utility package may claim CPU resources, but cannot recover NIC,
 device or link-layer claims by omitting its subsystem manifest or selecting an
 unknown role. Those hardware claims require a gateway subsystem manifest.
 App packages have no general outbound TCP or UDP grant through NIC claims.
+Their outbound TCP connections use the host's app uplink; see
+[App Network Access](app-outbound-connections.md).
 
 Component and app packages may include static browser assets, which R2Kernel
 serves without a package listener. A package-specific REST or WebSocket backend
@@ -397,6 +444,12 @@ After its server stops, the package calls the returned broker result's
 Closing only the raw descriptor does not stop the broker's duplicate
 immediately. Lease termination also cleans up its frontend listeners and
 connections.
+
+The Unix listener has no address that another process can use. The broker
+binds it in a private directory and removes that name at once, then reaches it
+through a descriptor only the broker holds. `/proc/net/unix` can still show the
+removed pathname, but connecting to it fails. A package therefore reaches
+another package's frontend only through the TCP port or Control's proxy.
 
 Frontend relays have host-wide listener and connection limits, a per-lease
 connection limit, bounded buffers and a connect timeout. Configure these under
@@ -558,6 +611,28 @@ exit or warning alone is not a successful release.
 
 Application signal handlers remain best effort. Product safety must not depend
 on application-level signal acknowledgement alone.
+
+## Interrupted Instances
+
+An instance is interrupted when its lease ended without a stop request. This
+happens when `r2kernel-resourced` restarts or is upgraded, because it keeps
+leases in memory, and when the process exits or crashes on its own. Control
+cannot tell these causes apart and records no exit status.
+
+Control keeps the launch request of an interrupted instance.
+`GET /api/v1/control/packages` lists these instances in
+`interrupted_instances`. The Web Console does not show this field yet. They are
+not running and are not restarted automatically. The 32 most recently started
+requests per package are kept. Replacing or removing the package discards them.
+
+- `restart` launches the instance again with its original parameters, bindings,
+  runtime directory and resource overrides. With one interrupted instance and
+  none running, the instance selector may be omitted. If the launch is refused,
+  the request stays retained and other packages can still start.
+- `stop` discards the retained request and any pending restart recovery of that
+  instance.
+- `start` with the same instance ID is a new request and replaces the retained
+  one.
 
 ## Direct Execution
 

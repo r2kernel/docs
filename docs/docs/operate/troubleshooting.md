@@ -97,6 +97,10 @@ ownership.
 | `resource incomplete-request capacity is full; request was not dispatched` | The resource service's incomplete-request capacity is exhausted; the request was refused before dispatch. Retry after pending requests complete. |
 | ``failed to start package `<name>` entrypoint <path>: managed child failed to <stage>: <errno>`` | The managed child was created but failed while preparing or executing the package entrypoint (for example `enter working directory`, `apply launch constraints` or `exec`); `<stage>` and `<errno>` name the failing step. |
 
+A gateway refused with `requires a root approval` selected
+`resources.sandbox.network: advisory`. See
+[Approve advisory networking](../reference/resource-authority.md#approve-advisory-networking).
+
 ## Logs
 
 | Area | Command |

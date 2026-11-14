@@ -22,7 +22,7 @@ Important public families include the following.
 - `msg.motion.articulated.v1`
 - `msg.motion.manipulator.v1`
 - `msg.locomotion.velocity.v1`
-- `msg.locomotion.mobile_base.v1`
+- `msg.locomotion.mobile_base.v1`, `msg.locomotion.mobile_base.v2` (`Odometry` only)
 - `msg.locomotion.legged.v1`
 - `msg.control.v1`
 - `msg.stream.v1`

@@ -5,6 +5,11 @@ and public specs are distributed under the Apache License 2.0, except separately
 identified third-party material. The proprietary runtime is not covered by that
 grant; its release includes a separate Runtime License.
 
+The Python SDK wheel and the C++ SDK archive bundle the R2Kernel communication
+library `libr2kernel_comm`. The SDK source is Apache-2.0; the bundled
+`libr2kernel_comm` binary is distributed under the R2Kernel Runtime License
+(`R2Kernel-RUNTIME-EULA.txt`) until its source is published.
+
 Copyright (c) R2Kernel contributors.
 
 Bundled third-party components:

@@ -38,6 +38,7 @@ the domain message that owns the spatial value.
 | `msg.motion.execution.v1` | shared motion execution state and scaling |
 | `msg.locomotion.velocity.v1` | body-velocity commands, acknowledgement, limits, and stop |
 | `msg.locomotion.mobile_base.v1` | mobile-base state, odometry, authority, and differential-drive data |
+| `msg.locomotion.mobile_base.v2` | odometry whose frames are required and name the provider's `reference` and `body` ports |
 | `msg.locomotion.legged.v1` | gait, contact, balance, and support state |
 | `msg.sensor.camera.v1` | camera intrinsics, stream formats, and camera source cycles |
 | `msg.localization.v1` | pose estimates and localization status |

@@ -17,6 +17,7 @@ This page is generated from `spec/messages`. Message schemas contain payload dat
 | `msg.localization.v1` | Localization payload family for self-pose estimation status. | 2 |
 | `msg.locomotion.legged.v1` | Legged locomotion payloads shared by quadruped and humanoid systems. | 10 |
 | `msg.locomotion.mobile_base.v1` | Canonical wheeled mobile-base payload family for platform state, odometry, safety state, and optional differential-drive helpers. | 10 |
+| `msg.locomotion.mobile_base.v2` | Wheeled mobile-base odometry with required provider frames. The other mobile-base messages remain in msg.locomotion.mobile_base.v1. | 1 |
 | `msg.locomotion.velocity.v1` | Canonical shared locomotion body-velocity payload family for timed control, acknowledgements, limits, and stop requests. | 4 |
 | `msg.mapping.v1` | Mapping payload family for occupancy-style map publication. | 2 |
 | `msg.motion.articulated.v1` | Articulated-motion payloads shared by jointed mechanisms. | 4 |
@@ -806,6 +807,24 @@ Differential-drive wheel position and velocity state.
 | `right_position_rad` | `float32` | yes | - |
 | `left_velocity_radps` | `float32` | yes | - |
 | `right_velocity_radps` | `float32` | yes | - |
+
+<a id="msg-locomotion-mobile-base-v2"></a>
+## `msg.locomotion.mobile_base.v2`
+
+Wheeled mobile-base odometry with required provider frames. The other mobile-base messages remain in msg.locomotion.mobile_base.v1.
+
+Imports: `msg.core.spatial.v1`.
+
+### `Odometry`
+
+Estimated body pose and twist for a wheeled platform.
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `frame_id` | `string` | yes | The provider's odometry reference frame, equal to the frame of its spatial `reference` port. |
+| `child_frame_id` | `string` | yes | The provider's body frame, equal to the frame of its spatial `body` port. |
+| `pose` | `msg.core.spatial/Pose` | yes | - |
+| `twist` | `msg.core.spatial/Twist` | no | - |
 
 <a id="msg-locomotion-velocity-v1"></a>
 ## `msg.locomotion.velocity.v1`

@@ -19,6 +19,7 @@ This page is generated from `spec/apis`. An API contract owns endpoint shape and
 | `api.locomotion.legged.state.v1` | 4 | 0 | 0 | 0 |
 | `api.locomotion.mobile_base.state.v1` | 2 | 0 | 4 | 0 |
 | `api.locomotion.odometry.v1` | 1 | 0 | 0 | 0 |
+| `api.locomotion.odometry.v2` | 1 | 0 | 0 | 0 |
 | `api.locomotion.velocity.v1` | 0 | 1 | 3 | 0 |
 | `api.locomotion.velocity_reference.v1` | 0 | 0 | 2 | 0 |
 | `api.mapping.v1` | 2 | 0 | 0 | 0 |
@@ -420,6 +421,29 @@ Canonical mobile-base odometry publication API contract.
 | Area | Declaration |
 | --- | --- |
 | `frames` | policy=endpoint_declared; dynamic_frames=owning_message_only |
+| `timing` | clock_domain=r2kernel_sync; event_envelope={'observed': 'observed_at_sync_ns', 'published': 'published_at_sync_ns', 'received': 'received_at_sync_ns'}; control_envelope={'generated': 'generated_at_sync_ns', 'sent': 'sent_at_sync_ns', 'execute': 'execute_at_sync_ns', 'valid_until': 'valid_until_sync_ns'} |
+| `state_model` | owner=provider; lifecycle=runtime_managed |
+| `failure_semantics` | transport=runtime_status; domain=endpoint_response |
+| `authority` | owner=provider; command_arbitration=exclusive_required_binding |
+| `limits` | source=provider; enforcement=provider |
+| `conformance` | level=public; payload_time=runtime_envelope |
+
+<a id="api-locomotion-odometry-v2"></a>
+## `api.locomotion.odometry.v2`
+
+Canonical mobile-base odometry publication API contract.
+
+### Events
+
+| Endpoint | Payloads and timing | Semantics |
+| --- | --- | --- |
+| `odometry` | type=msg.locomotion.mobile_base.v2/Odometry, direction=publish | observation=provider_sample; delivery=best_effort_latest; fanout=allowed |
+
+### Contract Semantics
+
+| Area | Declaration |
+| --- | --- |
+| `frames` | policy=spatial_ports; ports={'frame_id': 'reference', 'child_frame_id': 'body'}; dynamic_frames=owning_message_only |
 | `timing` | clock_domain=r2kernel_sync; event_envelope={'observed': 'observed_at_sync_ns', 'published': 'published_at_sync_ns', 'received': 'received_at_sync_ns'}; control_envelope={'generated': 'generated_at_sync_ns', 'sent': 'sent_at_sync_ns', 'execute': 'execute_at_sync_ns', 'valid_until': 'valid_until_sync_ns'} |
 | `state_model` | owner=provider; lifecycle=runtime_managed |
 | `failure_semantics` | transport=runtime_status; domain=endpoint_response |

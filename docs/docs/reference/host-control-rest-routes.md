@@ -125,7 +125,9 @@ target probe route has been removed.
 Installation registers one package record by package name. Starting with a new
 `instance_id` creates another managed runtime instance, subject to
 resource-policy conflicts. Stopped, terminated, and killed instances are removed
-from the active instance registry rather than retained as package history.
+from the active instance registry rather than retained as package history. An
+instance whose lease ended without a stop request keeps its launch request; see
+[Interrupted Instances](../operate/resource-control.md#interrupted-instances).
 
 ## Package Frontend Assets And Proxies
 

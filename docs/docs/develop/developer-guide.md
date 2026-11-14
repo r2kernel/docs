@@ -20,6 +20,7 @@ The table writes that prefix as `<prefix>`; the default prefix is listed in
 | Path | Purpose |
 | --- | --- |
 | `<prefix>/sdk/python` | installed Python SDK wheel payload |
+| `<prefix>/sdk/python/current` | managed Python environment with the SDK and its dependencies, a link into `environments/`; `env.sh` puts its `bin` first on `PATH` and exports it as `R2KERNEL_PYTHON`. Each SDK wheel gets its own environment there. When the installer selects another environment, the `previous` link names the one it replaced; after a successful installation the installer keeps the selected environment and that predecessor, and removes older ones |
 | `<prefix>/sdk/cpp` | installed C++ SDK headers, libraries, and CMake files |
 | `<prefix>/tutorials` | guided cleaner robot tutorial source |
 | `<prefix>/tutorials/subsystems` | subsystem package roots used by the tutorial |
@@ -76,6 +77,13 @@ Check the C++ SDK payload.
 ```text
 test -r <prefix>/sdk/cpp/include/r2kernel/wrapper/subsystem.hpp
 find <prefix>/sdk/cpp -maxdepth 4 \( -name 'libr2kernel_cpp.*' -o -name 'r2kernel_cppConfig.cmake' \) -print
+```
+
+Building the C++ tutorial packages or the public C++ SDK source needs a C++17
+compiler and CMake 3.20 or later. On Ubuntu or Debian:
+
+```text
+sudo apt install -y build-essential cmake
 ```
 
 Then check that the installed runtime services are reachable.

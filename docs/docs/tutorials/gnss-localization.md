@@ -47,9 +47,11 @@ Localizer applies a planar approximation using the latest odometry orientation
 and the explicitly configured map-to-odometry alignment; it is not
 production-grade measurement-time pose fusion. Estimate yaw comes from
 odometry and that alignment, never from simulator truth heading; a receiver's
-course-over-ground is not body yaw. The Localizer publishes its estimated map
-pose through the existing localization Event surface for navigation and
-application consumers.
+course-over-ground is not body yaw. The body frame of each position fix is the
+`child_frame_id` of the latest odometry sample (`api.locomotion.odometry.v2`
+names the mobile component's `body` port frame), not a name configured in the
+Localizer. The Localizer publishes its estimated map pose through the existing
+localization Event surface for navigation and application consumers.
 
 ## Source And File Boundaries
 

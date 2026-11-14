@@ -48,7 +48,7 @@ written here as `<prefix>`.
   product installs. The system service helper prepares this path for the
   non-root `r2kernel-control.service` user.
 - `<prefix>/env.sh` - shell helper that exports `R2KERNEL_PREFIX`,
-  `R2KERNEL_RUNTIME_ROOT`, `R2KERNEL_SPEC_ROOT`, and related paths.
+  `R2KERNEL_PACKAGE_RUNTIME_ROOT`, `R2KERNEL_SPEC_ROOT`, and related paths.
 - `<prefix>/bin/r2kernel-uninstall` - uninstaller for service links and the
   R2Kernel-managed entries of the prefix; the prefix directory is removed only
   when it is empty.

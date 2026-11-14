@@ -35,8 +35,23 @@ platform and application exist.
 
 The gateway package explicitly sets `resources.sandbox.network: advisory` for
 its direct HTTP connection to the simulator. This direct-network exception is
-available only to gateways. The component, compound and app packages use
-brokered networking and reach this adapter through R2Kernel interfaces.
+available only to gateways, and root must approve the package once. The
+component, compound and app packages use brokered networking and reach this
+adapter through R2Kernel interfaces.
+
+A gateway that talks to real devices over IP also declares their network
+adapter and address ranges (`device_networks`), so that apps never reach them
+through the host's app uplink. See
+[App Network Access](../operate/app-outbound-connections.md).
+
+Approve the tutorial gateway before you start it. This restarts the resource
+service, so run it while nothing else is launched.
+
+```text
+sudo <prefix>/runtime/bin/r2kernel-resourced \
+  --grant-advisory-network tutorial.robot_cleaner.device_gateway
+sudo systemctl restart r2kernel-resourced
+```
 
 ## Run This Stage
 
@@ -99,13 +114,11 @@ subsystem:
 provides:
   actuator_servo:
     contract: api.actuator.servo.v1
+  digital_io:
+    contract: api.tutorial.gateway.device_gateway.digital_io.v1
+    visibility: public
   timed_digital_output:
     contract: api.io.digital.timed_output.v1
-  digital_io:
-    contract: tutorial.gateway.device_gateway.digital_io.v1
-    visibility: internal
-    endpoints:
-      controls: [digital_output_set, digital_output_readback]
   radar_source:
     contract: api.sensor.radar.source.v1
   gnss_source:
@@ -116,8 +129,11 @@ provides:
 `common_control` Controls with a typed `ControlCycle`. The simulator remains an
 implementation detail behind both layers. A real gateway would translate the
 public Control surfaces to EtherCAT, CAN, serial, a vendor SDK, or a simulator
-API. The one-shot digital-I/O adapters are internal tutorial wiring; radar and
-GNSS use versioned `common_control` sample-exchange profiles. The GNSS payload
+API. The one-shot digital-I/O Controls use
+`api.tutorial.gateway.device_gateway.digital_io.v1`, a custom contract from the
+package's own `spec/` root. It is declared public so a federation binding can
+export it, but it is not a standard robot slot. Radar and GNSS use versioned
+`common_control` sample-exchange profiles. The GNSS payload
 is an antenna position, not a body pose or heading; the Localizer converts it
 to the configured map frame and combines it with odometry.
 
@@ -148,8 +164,9 @@ reject commands until the subsystem is `Operating`.
 
 The manifest and code must agree. The manifest says which contracts the gateway
 claims to provide; the code registers the runtime endpoints required by those
-contracts. Gateway public interfaces expose only Controls. The internal
-`digital_output_set`/`digital_output_readback` adapters preserve the tutorial's
+contracts. Gateway public interfaces expose only Controls. The
+`digital_output_set`/`digital_output_readback` Controls of the custom
+`digital_io` contract preserve the tutorial's
 existing one-shot gripper behavior without exposing Procedures on the Gateway.
 `timed_digital_output` supplies the separate `digital_output_control` Control
 used for periodic disposal output: a `command` cycle sets the output and later
@@ -210,8 +227,8 @@ endpoints.
 | --- | --- | --- |
 | `servo_control` control | mobile and manipulation components | applies base or arm actuator commands through the servo gateway surface |
 | `digital_output_control` control | incinerator component through `timed_digital_output` | sets the disposal output with `command`, maintains it with `keep` under an update-gap lease, and turns it off when the lease lapses |
-| `digital_output_set` internal Control | gripper component | preserves the tutorial's one-shot output-setting behavior |
-| `digital_output_readback` internal Control | gripper component | reads the output state |
+| `digital_output_set` custom `digital_io` Control | gripper component | preserves the tutorial's one-shot output-setting behavior |
+| `digital_output_readback` custom `digital_io` Control | gripper component | reads the output state |
 | `radar_cycle` standard Control | perception component | poll prepared, time-stamped sectors from the integrated rotating radar |
 | `gnss_cycle` standard Control | localizer component | polls the latest antenna-frame WGS84 fix; the Localizer handles map conversion and odometry orientation |
 
@@ -229,8 +246,9 @@ the contracts.
 rg -n "register_control_endpoint|register_procedure|register_event_publish" tutorials/subsystems/gateway.device_gateway/device_gateway.py
 ```
 
-Only Control registrations should appear in the Gateway code. The manifest's
-internal endpoints and public API contracts must match those registrations.
+Only Control registrations should appear in the Gateway code. The API
+contracts in the manifest, including the custom `digital_io` contract, must
+match those registrations.
 
 ## Cleaner Robot Graph After This Step
 

@@ -19,11 +19,12 @@
   "root_launch_gid": 951,
   "federation_key_path": "<prefix>/etc/federation.key",
   "device_grants": [],
-  "link_layer_grants": []
+  "link_layer_grants": [],
+  "advisory_network_packages": []
 }
 ```
 
-UID/GID 950 identify the Control account and 951 identify a separate package account; use the installed accounts' actual IDs. The package UID must differ from the Control UID. The policy, executable files, cgroup scope and their parent directories must be root-owned, without symlinks or group/world write permission. Use canonical executable paths: substitute the canonical absolute install prefix for `<prefix>` in the example. The federation key is a root-only regular file (mode `0600`, 16–4096 bytes); only an authenticated manager can load its material through the broker. Status and allocation snapshots contain no key material.
+UID/GID 950 identify the Control account and 951 identify a separate package account; use the installed accounts' actual IDs. The package UID must differ from the Control UID. The policy, executable files, cgroup scope and their parent directories must be root-owned, without symlinks or group/world write permission. Use canonical executable paths: substitute the canonical absolute install prefix for `<prefix>` in the example. The federation key is a root-only regular file (mode `0600`, 16–4096 bytes); only an authenticated manager can load its material through the broker. Status and allocation snapshots contain no key material. The installer also writes the optional `app_uplink` section; see [App uplink](#app-uplink).
 
 A manager must match an approved UID and executable inode and remain outside the package cgroup subtree. A manager can launch only packages it can read itself: the resource service reads the package with the manager's user, group and supplementary groups. Every managed child enters a root-owned lease cgroup before its package entrypoint executes. Executing a manager binary from inside a package retains its package scope and cannot confer manager authority. Manager entrypoints disable process dumping; package seccomp denies tracing, cross-process memory and cross-process descriptor (`pidfd_getfd`) syscalls. Seccomp does not cover `/proc/<pid>/mem`; the kernel's ptrace rules govern it. With `kernel.yama.ptrace_scope` 1 or higher (the Ubuntu default), a process can open the memory only of its own descendants, so managed packages cannot reach each other, and a sandboxed package cannot reach a same-account process outside its own tree. With `kernel.yama.ptrace_scope=0`, any process of the same account, sandboxed or not, can read and write another's memory this way. Keep `ptrace_scope` at 1 or higher on hosts that run brokered packages beside other code of the same account. Foreground attachment is a single-use transition for the claiming manager's direct child, identified by PID and Linux process start time. Reattachment to a different process is rejected. Lifecycle changes, allocation inspection, shared-resource changes and federation-key reads require manager authority. Package FD requests require the original attached process identity and its resource grants. A brokered CAN descriptor is not confined to its claimed interface: its holder can bind it again or name another interface in each `sendmsg`, and so reach every CAN interface of the host, including interfaces another package claims exclusively. A gateway with `resources.sandbox.network: advisory` and without `resources.sandbox.can: brokered` can open raw CAN sockets itself, because Linux requires no capability for them. Brokered networking permits only Unix-domain socket creation, so it also blocks direct CAN sockets; see [Resource Control](../operate/resource-control.md#brokered-network-sandbox). A brokered UDP descriptor is likewise not confined to its claimed adapter for sending: its holder can name another interface for each datagram (`IP_PKTINFO`). Manager clients verify that the connected broker is a root peer before trusting any response. The broker socket stays root-owned; shared IPC directories use root ownership and sticky protection.
 
@@ -54,7 +55,31 @@ a policy edit.
 
 The broker policy controls broker-issued descriptors. Direct-device packages still depend on their separate OS device permissions; do not assign a broad device group to a package when broker-only access is intended.
 
+## Approve advisory networking
+
+`resources.sandbox.network: advisory` removes a gateway's socket filter, so the
+package can open any socket without the broker. A package cannot select this
+for itself. The manifest only requests it, and launch is refused until the root
+policy names the package:
+
+```sh
+sudo <prefix>/runtime/bin/r2kernel-resourced \
+  --grant-advisory-network tutorial.robot_cleaner.device_gateway
+sudo systemctl restart r2kernel-resourced
+```
+
+The approval is for the name a package declares, not for its content. It covers
+any package with that name that an authorized manager installs or launches, so
+approve only names whose installation you control. Restarting the service ends
+all leases; see
+[interrupted instances](../operate/resource-control.md#interrupted-instances).
+`advisory_network_packages` is the one optional field here: a policy without it
+approves no package.
+
 ## Approve a link-layer capability grant
+
+A link-layer package also uses `network: advisory`, so it needs the approval
+above as well.
 
 A `resources.link_layer` claim lists `CAP_NET_RAW`, and optionally `CAP_NET_ADMIN`, in `grant.capabilities`. The manifest alone grants nothing. The resource service starts the package with a capability only when the root-managed policy approves that capability for the claimed interface. No capability is approved by default. Add an entry to `link_layer_grants` and restart the broker:
 
@@ -86,19 +111,64 @@ An approved capability is ambient in the package process. It applies to the whol
 
 The `exclusive` mode keeps other R2Kernel leases off the interface; it does not keep the package off other interfaces. The declared `protocols` are labels, and nothing restricts the package to them. Approve link-layer grants only for packages you trust with the host's network.
 
-## Approved app TCP streams
+## App uplink
 
-The optional root `outbound_tcp` policy enables exact-execution TCP grants for
-allowed app packages. It is disabled when absent and defaults to an empty
-package allowlist. An app still requires brokered network and does not own a
-NIC. The broker owns the approved TCP connection and issues an AF_UNIX byte
-stream. A fresh broker execution ID prevents a reused lease ID from reusing an
-old grant.
+The optional `app_uplink` section sets how managed `role: app` packages connect
+out. Without it, the uplink is off and status reports it as not configured. The
+installer writes it on every installation and upgrade. See [App Network
+Access](../operate/app-outbound-connections.md) for the behaviour, the
+installer step and the root command.
 
-See [Approved App Connections](../operate/app-outbound-connections.md) for the
-policy fragment, live allocation fields, protected atomic grant-file updates,
-limits, renewals, revocation and matched SDK use. Existing authority policy
-updates preserve this optional section and do not enable it automatically.
+```json
+"app_uplink": {
+  "mode": "auto",
+  "interfaces": [],
+  "exclude_interfaces": [],
+  "protected_networks": [],
+  "allowed_destinations": [],
+  "max_connections": 64,
+  "max_connections_per_lease": 8,
+  "max_pending_connects": 16,
+  "max_connect_timeout_ms": 30000,
+  "buffer_bytes": 16384
+}
+```
+
+| Field | Default | Rule |
+| --- | --- | --- |
+| `mode` | required | `off`, `explicit` or `auto`. |
+| `interfaces` | `[]` | In `explicit` mode, 1 to 64 interface names. Empty in the other modes. |
+| `exclude_interfaces` | `[]` | Up to 64 interface names that apps never use. |
+| `protected_networks` | `[]` | Up to 64 entries `{"interface": name, "networks": [range, ...]}`, each with 1 to 64 ranges. The ranges are blocked through every interface. The optional `interface` marks a shared gateway interface as covered. |
+| `allowed_destinations` | `[]` | Up to 256 entries. Each has exactly one of `host` (an exact name or a `*.` suffix) or `network` (an address or a range), and optional `ports` (up to 64). An empty list allows any destination outside the blocks. |
+| `max_connections` | 64 | 1 to 1024 open uplink connections on the host. The broker admits fewer when its open-file limit is too low and reports `effective_max_connections`. |
+| `max_connections_per_lease` | 8 | 1 to `max_connections`, for one app execution. |
+| `max_pending_connects` | 16 | 1 to 256 connections being resolved or connected at once. |
+| `max_connect_timeout_ms` | 30000 | 1000 to 120000. A longer request timeout is shortened to this value. |
+| `buffer_bytes` | 16384 | 1024 to 65536 bytes buffered in each relay direction. |
+
+Rules for the text values:
+
+- A range is canonical CIDR text: host bits zero and no spaces. A plain address
+  means a /32 or /128 range.
+- A host name uses ASCII letters, digits, `-` and `.`, has at most 253 bytes and
+  is compared case-insensitively.
+- Unknown fields and `null` values are refused.
+- `max_connections` below 8 needs an explicit `max_connections_per_lease`.
+
+At start, `r2kernel-resourced` raises its open-file soft limit to the hard limit. Managed
+packages keep the original limit.
+
+Restart `r2kernel-resourced` after a change. The root command
+`r2kernel-resourced --set-app-uplink` changes the mode, the interfaces and the
+exclusions, and keeps the other fields.
+
+The `outbound_tcp` section of earlier 1.0.0 candidates is retired. The installer
+removes it on upgrade. A policy that still contains it is refused:
+
+```text
+outbound_tcp was retired in 1.0.0; remove it from <path> and configure app_uplink (Reference > Resource authority)
+```
 
 ## Managed scope retirement
 
@@ -176,18 +246,17 @@ These values describe the broker's resolved launch. They do not grant
 authority to a package or registration. Public allocation summaries omit this
 context.
 
-Frozen allocations may also include `package_runtime_exclusion`, the exact
-relative mutable-state subtree omitted from the code snapshot. This scope must
-match the broker's resolved runtime context. Reconciliation captures current
-source code with the same scope, so log writes do not cause code conflicts.
-Changes to static siblings still do. Older metadata without this field keeps
-its original full-tree content comparison. Public summaries omit the scope.
+Reconciliation compares a lease with the request it would replay by its
+logical launch intent: the package name and directory, the SHA-256 of
+`package.yaml`, the role, the instance ID, the parameters, the runtime
+directory and the frontend endpoints. It does not hash the other files of the
+package directory, so an in-place change to a program file, script or asset is
+not reported as a conflict. The broker's execution context is validated, not
+compared.
 
 Deployment, managed restart and runtime apply use that context when resolving
 the original request. This keeps runtime parameters consistent when the
-manager and broker have different environment settings. Frozen content hashes
-and execution IDs remain separate from the requested launch settings. A valid
-execution ID is still required for an approved outbound grant.
+manager and broker have different environment settings.
 
 Older allocations without this context use only the public resolver's exact
 legacy runtime layout. An arbitrary runtime path is not accepted as a recovered

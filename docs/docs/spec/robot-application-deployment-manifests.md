@@ -215,8 +215,9 @@ One subsystem instance can satisfy multiple robot slots when it provides
 multiple public R2Kernel spec interfaces. A Gateway may fill multiple slots
 only through public Control endpoints. In the tutorial, the device Gateway
 fills actuator, timed-output, radar, and GNSS source slots. Components adapt
-the internal digital-I/O Controls while preserving their application-facing
-Procedures and Events. These internal bindings are not robot slots.
+the Gateway's package-local digital-I/O Controls while preserving their
+application-facing Procedures and Events. These component-to-Gateway bindings
+are not robot slots.
 
 Validation rules.
 

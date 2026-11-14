@@ -53,6 +53,26 @@ security:
 Origin allowlist is optional, but recommended when a fixed management URL is
 used.
 
+Whether or not `security.enabled` is set, Control refuses two kinds of browser
+request so that a web page open in the operator's browser cannot drive the
+Console. A write or a WebSocket handshake whose `Origin` is neither the page's
+own Console origin nor listed in `allowed_origins` is refused with
+`origin_not_allowed`. A request whose `Host` names something other than this
+machine is refused with `host_not_allowed`; this stops DNS rebinding. IP
+addresses, `localhost`, the OS hostname and `<hostname>.local` always name this
+machine. To reach Control by another DNS name, list an origin with that name in
+`allowed_origins` (or in `control.management_https.allowed_origins` for the
+HTTPS Console), or set `control.advertise_host` to it. Clients that are not
+browsers, such as the CLI, the SDKs and federation peers, send no `Origin` and
+are not affected by the first rule.
+
+`trust_forwarded_for: true` is for a reverse proxy on the same host. Control
+then takes the source address for `allow_cidrs` from the `X-Forwarded-For` entry
+that proxy appended (the last one), and only on connections from loopback; a
+remote client's own `X-Forwarded-For` is ignored. Any local process can also
+state an address this way, so keep it off unless Control listens on loopback
+behind such a proxy.
+
 The network and hostname above are documentation examples, not deployable
 defaults. Replace them with your management subnet and TLS-protected origin,
 and configure real credentials before changing a listener bind. The HTTP
@@ -64,6 +84,11 @@ firewall and VPN policy; a VPN alone does not authenticate application users.
 See [Runtime Configuration](runtime-configuration.md#security-before-exposure)
 for explicit remote bind selection, including federation and outbound
 Control interfaces. Loopback defaults do not disable time-sync traffic.
+
+Without federation keys, Control opens Protocol connections only to targets on
+this host and to targets a federation peer registered, at the Control relay
+endpoint that peer advertised. A local client cannot make Control connect to
+another host, or to another endpoint for a registered target.
 
 Federation's `optional` mode permits unsigned/plaintext inbound Event traffic
 but initiates secure outbound connections; managed Optional and Required modes
@@ -135,6 +160,28 @@ tokens:
     token: replace-with-long-random-token
 ```
 
+The API key file follows the credential file rules under Web Login: a regular,
+non-symlink file of the Control user without group or other access, in a
+directory that the Control user owns and that group and others cannot write,
+on a path without symbolic links. The installer's default
+`<prefix>/var/lib/security/` meets these rules; a directory such as
+`/etc/r2kernel`, owned by root, does not. Keys in a file that breaks these
+rules are not accepted, Control logs why, and Settings → Security reports the
+storage problem.
+
+Keep API keys in this file. Do not list them inline under `security.api.tokens`
+in `config.yaml`: on a system installation `config.yaml` is readable by the
+`r2kernel` group, which managed packages run with, so an inline key is readable
+by those packages.
+
+The variable named by `token_env` holds one more key, with a different purpose.
+Control accepts it with the `admin` role, and it is also the key Control sends
+to every federation peer's Host API for peer discovery, in the `Authorization`
+and `X-API-Key` headers of a plain HTTP request (see
+[Advanced Federation](../tutorials/advanced-federation.md)). Use it only for a
+key that the federation peers are meant to accept, and keep every other key in
+the key file.
+
 Roles are enforced by protected Host Control routes when security is enabled.
 
 | Role | Access |
@@ -152,8 +199,9 @@ private credential file or a service-managed environment variable. Avoid putting
 real passwords directly in the main runtime YAML or command-line arguments.
 
 Credential files must be regular, non-symlink files owned by the operating-system
-user that reads them, with no group/other access. Their parent directory must not
-be writable by group/others. A root-owned `0700` directory and `0600` file are not
+user that reads them, with no group/other access. Their parent directory must be
+owned by the same user and must not be writable by group/others, and no component
+of the path may be a symbolic link. A root-owned `0700` directory and `0600` file are not
 readable by the standard non-root `r2kernel` Control service. Do not enable login
 until the installation's credential access arrangement is verified. The Console
 does not run as root or automatically widen these permissions.
@@ -320,7 +368,12 @@ Choose **Save connection settings**, then **Apply all saved settings (restart)**
 Control restarts. When the address changes, Settings keeps a reconnect notice
 visible; choose **Reconnect to Console** at the saved address after the restart.
 A restricted root service stores protected TLS files and atomically updates only
-HTTPS configuration. The Control process remains non-root. HTTPS OFF preserves
+HTTPS configuration. The Control process remains non-root. The files live in
+`<prefix>/management-tls` (root, mode 0750). The private key has mode 0640 and
+group `r2kernel-control`, of which only the Control account is a member. Managed
+packages run with the `r2kernel` group for IPC and cannot read it. Service
+registration moves material that an earlier installation gave the `r2kernel`
+group to `r2kernel-control`. HTTPS OFF preserves
 saved material for reuse, and reinstallation preserves the selected protocol.
 Generated certificates require browser trust confirmation; the installer does
 not distribute a shared private key.
@@ -407,12 +460,14 @@ managed Settings service:
 
 ```sh
 sudo r2kernel-config management-https-native-prepare \
-  --prefix <prefix> --owner-gid "$(getent group r2kernel | cut -d: -f3)"
+  --prefix <prefix> --owner-gid "$(getent group r2kernel | cut -d: -f3)" \
+  --material-gid "$(getent group r2kernel-control | cut -d: -f3)"
 sudo systemctl restart r2kernel-control
 ```
 
 This explicit root preparation command enables HTTPS and reuses existing
-complete TLS material. Container deployments must provision their own native
+complete TLS material. `--owner-gid` names the Control store's group and
+`--material-gid` the group of the TLS directory and files. Container deployments must provision their own native
 TLS material and OS login service. Support URLs are optional product metadata.
 
 Example native HTTPS management configuration (replace all example values):

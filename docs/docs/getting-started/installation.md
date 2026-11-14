@@ -12,7 +12,8 @@ sudo apt install -y ca-certificates curl python3 python3-venv
 ```
 
 The installer needs access to the distribution service and a Python package
-index or compatible local pip cache. Download processing and the runtime/SDK
+index or compatible local pip cache. It uses an existing pip cache and does not
+create one. Download processing and the runtime/SDK
 license boundaries are described in
 [Distribution and Licensing](../reference/distribution-and-licensing.md).
 
@@ -30,7 +31,20 @@ Follow the installer prompts:
 1. Read and accept the runtime license. Acceptance must be manual.
 2. Keep the default location, `/opt/r2kernel`, for a managed host installation.
 3. Choose **Install system services** to start the runtime automatically.
-   The wizard also offers Console administrator-password setup.
+   The wizard then asks about app network access and serial devices, and
+   offers Console administrator-password setup.
+
+The system services include managed PTP time sync on domain 24
+(`time_sync.domain`). A host with no other R2Kernel host to follow leads that
+domain, so if other equipment on the network already uses domain 24, skip the
+system services, choose another domain as described in
+[Time Sync Operations](../operate/time-sync-operations.md), and then register
+them as described in the
+[Installation Reference](../reference/installation-reference.md#system-services).
+
+The serial device question defaults to leaving the serial ports to the system.
+R2Kernel packages still open them through the resource service; see
+[Resource Control](../operate/resource-control.md#serial-and-device-access).
 
 A fresh installation uses a local HTTP Console with login OFF unless you choose
 a password. Keep it on a trusted host; configure

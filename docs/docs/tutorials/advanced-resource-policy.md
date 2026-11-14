@@ -73,7 +73,9 @@ would claim different resources.
 The simulator-backed gateway explicitly selects `sandbox.network: advisory`
 for its direct HTTP adapter. Components, compounds and apps declare
 `sandbox.network: brokered`, which allows them to create only Unix-domain
-sockets. Only a gateway may select the direct-network exception.
+sockets. Only a gateway may select the direct-network exception, and root must
+approve that package first with `--grant-advisory-network`
+([Build Gateway Subsystem](build-gateway-subsystem.md)).
 
 | Cleaner role | Resource policy |
 | --- | --- |

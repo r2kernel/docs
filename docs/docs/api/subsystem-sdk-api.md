@@ -419,15 +419,28 @@ For the method catalog, see [Subsystem SDK Reference](../reference/subsystem-sdk
 Operation uses the control exchange path for start/cancel/query and Event for
 state/feedback/result.
 
+The standard `move_j` Operation of `api.motion.articulated.trajectory.v1`
+takes a `MoveJRequest` and declares `timing_support: none`, so the examples send
+no timing. Pass `timing` only to an Operation that accepts it.
+
 Python example.
 
 ```python
-operation = self.start_bound_operation(
+operation_id = self.start_bound_operation(
     binding="arm",
     operation="move_j",
-    params={"positions": [0.0, 0.1, 0.2]},
-    request_type="msg.motion.articulated.v1/JointWayPoint",
-    timing={"execute_after_ns": 1_000_000},
+    params={
+        "waypoints": [
+            {
+                "q": {"values": [0.0, 0.1, 0.2]},
+                "radius": 0.0,
+                "vel": 1.0,
+                "cornering_vel": 0.0,
+                "acc": 1.0,
+            }
+        ],
+    },
+    request_type="msg.motion.articulated.v1/MoveJRequest",
 )
 ```
 
@@ -435,11 +448,15 @@ C++ example.
 
 ```cpp
 r2kernel::wrapper::OperationStartOptions options;
-options.request_type = "msg.motion.articulated.v1/JointWayPoint";
-options.timing = r2kernel::wrapper::ControlTimingOptions{};
-options.timing->execute_after_ns = 1'000'000;
+options.request_type = "msg.motion.articulated.v1/MoveJRequest";
 
-auto response = start_bound_operation("arm", "move_j", "{...}", options);
+auto response = start_bound_operation(
+    "arm",
+    "move_j",
+    "{\"waypoints\":[{\"q\":{\"values\":[0.0,0.1,0.2]},"
+    "\"radius\":0.0,\"vel\":1.0,\"cornering_vel\":0.0,\"acc\":1.0}]}",
+    options
+);
 ```
 
 For the method catalog and C++ shutdown requirements, including the lifetime of
@@ -601,8 +618,9 @@ network and CAN sockets directly with `resources.sandbox.fd_delegation: lease_sc
 Under `resources.sandbox.network: brokered`, the launcher sets
 `R2KERNEL_SANDBOX_NETWORK=brokered` (and `R2KERNEL_SANDBOX_CAN=brokered` for
 CAN). When a Python lifecycle hook fails with an `EPERM` raised by creating a
-socket (`socket.socket`) and the process is actually denied, the SDK logs which socket families are denied and the alternatives: a
-brokered socket or the leader pass-through pattern above. The C++ SDK opens only
+socket (`socket.socket`) and the process is actually denied, the SDK logs which socket families are denied and the alternatives: the app
+uplink for outbound TCP (`open_uplink_tcp`), a brokered socket or the leader
+pass-through pattern above. The C++ SDK opens only
 Unix-domain sockets itself; `r2kernel::sandbox_socket_denial` formats the same
 diagnostic for application error paths. An `EPERM` from any other call is not
 explained this way.

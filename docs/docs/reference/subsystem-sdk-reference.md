@@ -62,13 +62,25 @@ path that does not exist is skipped. A manifest inside a package directory
 (one holding `package.yaml`) is read with the package's
 `contracts.spec_roots`.
 
+Those roots, and at construction the roots in `R2KERNEL_CONTRACT_SPEC_ROOTS`,
+must respect the IDs reserved for the installed dictionary: a standard ID only
+as an identical copy, and no new ID under a standard prefix such as
+`api.locomotion` ([Versioning and Resolution](../spec/versioning-resolution.md)).
+Otherwise loading raises `ManifestError` and construction fails. The installed
+dictionary is `R2KERNEL_SPEC_ROOT` when it is a complete spec tree, otherwise
+`$R2KERNEL_PREFIX/spec` or the default-prefix spec directory; the Python SDK
+falls back to the dictionary it ships. Without one, C++ compares with the core
+library's shipped standards and cannot apply the prefix rule.
+
 ### Manifest Validation
 
 Both SDKs validate manifests with the same rules and the same messages:
 subsystem kind and role, interface and
 export declarations, spatial declarations and the spatial ports a component
-contract requires, and the role endpoint policy (Gateways use only Control
-endpoints; apps and compounds use none). A deployment manifest is checked as a
+contract requires, the ports a provided `spatial_ports` API maps (each an
+`export` port with a literal `frame`; a missing port, an `import` and a
+`source` alias are refused), and the role endpoint policy (Gateways use only
+Control endpoints; apps and compounds use none). A deployment manifest is checked as a
 whole: its robot and application manifests, instances (`slots`, `launch`,
 `host`, `params`), robot slot assignment and contracts, the application's
 required robot profiles, every binding, Control binding-group identity (one
@@ -241,8 +253,32 @@ cannot replace a failed initialization.
 (Python `priority=...`, C++ `EventPublishSpec::priority`); a sample carries no
 priority of its own.
 
+For an Event of a provided API whose `frames.policy` is `spatial_ports` (for
+example `odometry` of `api.locomotion.odometry.v2`), `publish_event` first
+compares each field named in `frames.ports` with the frame of the mapped
+spatial port in the provider's manifest. On a mismatch the sample is not sent:
+both SDKs log an `EventMessage` error that starts with `frame_mismatch:` and
+names the topic, field, value, port and expected frame, and `publish_event`
+returns `False` (C++ `false`). Python compares the value before encoding and
+leaves a missing field to the codec, which refuses it on encode (`Missing
+required field`). C++ reads the field from the encoded payload, so a payload
+without it is refused as `frame_mismatch` as well; the C++ codecs already refuse
+to encode a sample without a required field. The check costs one string
+comparison per mapped field.
+
 Event endpoints must come from public spec contracts or `visibility: internal`
 manifest endpoint lists. Do not create endpoint names dynamically at runtime.
+
+An Event payload must fit one topic buffer slot: at most
+`shm_manager.topic_buffer_slot_size` minus the 64-byte slot header, which is 960
+bytes by default. Registration does not check this. A larger `size` registers,
+and each publish then fails: Python logs the failure, and C++ `publish_event`
+returns `false`. Raising the slot size changes the pool geometry, so retire the
+existing pool first
+([Resource Control](../operate/resource-control.md)); a restart alone leaves
+Control unable to start. Lower `topic_buffer_slot_count` in the same change: the
+pool is slot size times slot count, and raising only the slot size can fill most
+of `/dev/shm`.
 
 ### Native Event Receive Capacity
 
@@ -426,9 +462,11 @@ the Operation was accepted and no Control source authority.
 | Call typed Procedure | `call_typed_procedure(target=..., procedure=..., request_type=..., response_type=..., params=..., timeout_ms=1000)` | `call_typed_procedure(target, procedure, request_type, response_type, params_json = "{}", timeout_ms = 1000)` |
 
 
-A failed Procedure call reports `ok` false with an `error_code`:
-`procedure_transport_failed` when the transport fails and
-`procedure_response_error` when a timed response carries a nonzero status
+A failed Procedure call reports `ok` false with an `error_code`: `timeout`
+when no reply arrives before the deadline, `procedure_transport_failed` when
+the Control channel returns a failure status (the reason is in
+`error_message`), and `procedure_response_error` when a timed response carries
+a nonzero status
 (Python also keeps the timed reply under `procedure_response`). C++
 `start_operation` reports `operation_transport_failed` in
 `OperationStartResponse::error_code` when the transport fails; Python raises
@@ -614,7 +652,8 @@ The core `R2KernelClient` of each SDK offers the same `open_*` calls.
 | --- | --- | --- | --- |
 | `open_udp_socket(*, interface, bind_host="0.0.0.0", bind_port=0)` | `open_udp_socket(UdpSocketOptions)` | Open an approved UDP socket on a claimed interface | UDP device protocols |
 | `open_tcp_socket(*, interface, ..., listen=False, backlog=128)` | `open_tcp_socket(TcpSocketOptions)` | Open an approved TCP socket on a claimed interface | TCP device protocols or managed listeners |
-| `open_approved_tcp_stream(*, grant_id)` | `open_approved_tcp_stream(grant_id)` | Receive a connected Unix stream to one root-approved TCP endpoint for this exact app execution | app connections to supervisory services or another robot |
+| `open_uplink_tcp(host, port, *, timeout_s=10.0, tls=False, server_hostname=None, ssl_context=None)` | `open_uplink_tcp(UplinkTcpOptions)` | Receive a connected stream to `host:port` through the host's app uplink | app connections to cloud services or other robots |
+| `open_uplink_connection(host, port, ...)` (async) | — | The same as an asyncio `(reader, writer)` pair | asyncio apps |
 | `open_frontend_tcp_listener(*, kind="api", bind_host=None, bind_port=None, backlog=128)` | `open_frontend_tcp_listener(FrontendTcpListenerOptions)` | Receive a Unix listener behind the broker's declared loopback TCP frontend (`kind` is `api` or `ws`) | package-owned REST or WebSocket backend |
 | `open_can_socket(*, interface, receive_own_messages=False, can_fd_frames=False, nonblocking=True)` | `open_can_socket(CanSocketOptions)` | Open an approved CAN socket | CAN or CAN-FD devices |
 | `open_device(path, *, read=True, write=True, nonblocking=True)` | `open_device(path, DeviceOpenOptions)` | Open an approved device file | serial, USB, or udev-governed devices |
@@ -625,7 +664,8 @@ Python returns `BrokeredSocketResult` (`socket`, a `socket.socket`, and
 `BrokeredSocketResult` (`socket`, a descriptor) or `BrokeredFdResult` (`fd`)
 with the broker's result object as `metadata_json` and a close-on-exec
 descriptor. The caller owns and closes the returned result. Each request is sent once within one
-5-second budget; a refusal or an invalid reply raises (C++ throws
+5-second budget, except an uplink request, which waits for the reply up to its
+timeout plus 2 seconds; a refusal or an invalid reply raises (C++ throws
 `std::runtime_error`) and closes every received descriptor.
 
 Resource broker access requires `R2KERNEL_RESOURCE_LEASE_ID`, normally set by
@@ -636,13 +676,14 @@ Component, compound and app packages must declare
 Generic NIC, CAN and device socket requests remain subject to their hardware
 claims; a component or app frontend grant does not provide those claims.
 
-`open_approved_tcp_stream` requires an enabled root policy and an exact live
-app-execution grant. The broker retains the TCP socket and revokes the Unix
-stream on expiry, removal or execution termination, including duplicated
-descriptors. SDKs verify the root peer, grant/lease metadata, a 32-character
-broker `execution_id`, and a connected non-listening Unix stream. There is no
-general NIC grant or fallback. See [Approved App Connections](../operate/app-outbound-connections.md)
-for configuration, provisioning, renewal and application authentication limits.
+`open_uplink_tcp` is for `role: app` packages. The broker resolves `host`,
+refuses device networks, this host's own addresses, loopback, link-local and
+multicast destinations, connects within the timeout and keeps the TCP
+connection. The app receives a connected `AF_UNIX` stream; with `tls=True` the
+Python SDK wraps it in TLS for `host`. Refusals raise `ResourceBrokerError` in
+Python and C++, carrying the broker's code, such as `app_uplink_off` or
+`destination_blocked`. The host's mode and limits apply;
+see [App Network Access](../operate/app-outbound-connections.md).
 
 The `open_frontend_tcp_listener` method and request names are retained. Its
 returned socket is `AF_UNIX`, `SOCK_STREAM` and listening. The broker owns the

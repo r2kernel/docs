@@ -55,6 +55,15 @@ this component must map every required port in its `subsystem.yaml`. Spatial
 ports are separate from `conformance_apis`; they define how a component fits
 into a physical frame topology rather than how messages are exchanged.
 
+An API contract can tie a published field to a spatial port with
+`frames.policy: spatial_ports` (see [API Contract Model](api-contract-model.md)).
+`component.mobile_base.odometry.v2` does this through
+`api.locomotion.odometry.v2`: every odometry sample names the frames of the
+provider's `reference` and `body` ports. New odometry providers should claim
+`component.mobile_base.odometry.v2`. `component.mobile_base.odometry.v1` and the
+odometry API that `component.mobile_base.v1` recommends stay at v1 unchanged,
+because a published ID keeps its content within its version.
+
 ## Summary Table
 
 | Canonical contract | Role | Backing API contracts |
@@ -65,6 +74,7 @@ into a physical frame topology rather than how messages are exchanged.
 | `component.gripper.v1` | component | `api.end_effector.gripper.v1` |
 | `component.mobile_base.v1` | component | [locomotion velocity](api-contract-reference.md#api-locomotion-velocity-v1)<br>[velocity reference](api-contract-reference.md#api-locomotion-velocity-reference-v1)<br>[mobile-base state](api-contract-reference.md#api-locomotion-mobile-base-state-v1) |
 | `component.mobile_base.odometry.v1` | component | [locomotion velocity](api-contract-reference.md#api-locomotion-velocity-v1)<br>[velocity reference](api-contract-reference.md#api-locomotion-velocity-reference-v1)<br>[mobile-base state](api-contract-reference.md#api-locomotion-mobile-base-state-v1)<br>[odometry](api-contract-reference.md#api-locomotion-odometry-v1) |
+| `component.mobile_base.odometry.v2` | component | [locomotion velocity](api-contract-reference.md#api-locomotion-velocity-v1)<br>[velocity reference](api-contract-reference.md#api-locomotion-velocity-reference-v1)<br>[mobile-base state](api-contract-reference.md#api-locomotion-mobile-base-state-v1)<br>[odometry v2](api-contract-reference.md#api-locomotion-odometry-v2) |
 | `component.mobile_base.localized.v1` | component | [locomotion velocity](api-contract-reference.md#api-locomotion-velocity-v1)<br>[velocity reference](api-contract-reference.md#api-locomotion-velocity-reference-v1)<br>[mobile-base state](api-contract-reference.md#api-locomotion-mobile-base-state-v1)<br>[localization](api-contract-reference.md#api-localization-v1) |
 | `component.mobile_base.autonomous.v1` | component | [locomotion velocity](api-contract-reference.md#api-locomotion-velocity-v1)<br>[velocity reference](api-contract-reference.md#api-locomotion-velocity-reference-v1)<br>[mobile-base state](api-contract-reference.md#api-locomotion-mobile-base-state-v1)<br>[localization](api-contract-reference.md#api-localization-v1)<br>[navigation](api-contract-reference.md#api-navigation-v1) |
 | `component.perception.v1` | component | `api.perception.query.v1` |

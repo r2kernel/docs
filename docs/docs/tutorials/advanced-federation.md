@@ -142,7 +142,9 @@ cd <prefix>
 python3 tutorials/run_sim_world.py --host 127.0.0.1
 ```
 
-In another gateway-host terminal, start only the gateway subsystem.
+In another gateway-host terminal, start only the gateway subsystem. Each host
+has its own resource authority, so approve the gateway on this host first; see
+[Build Gateway Subsystem](build-gateway-subsystem.md).
 
 ```text
 . <prefix>/env.sh

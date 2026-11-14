@@ -132,9 +132,13 @@ spatial:
       frame: cleaner_base
 ```
 
-`component.mobile_base.odometry.v1` requires these spatial ports. The component spec
+`component.mobile_base.odometry.v2` requires these spatial ports. The component spec
 defines their portable meaning, while this subsystem chooses the concrete local
-frame names.
+frame names. Its odometry API (`api.locomotion.odometry.v2`) also binds the
+frames of each odometry sample to these ports: `frame_id` is the `reference`
+frame and `child_frame_id` the `body` frame. Both ports must therefore declare a
+literal `frame` rather than a `source` alias, and the SDK refuses a sample that
+names other frames.
 
 Open the compound manifest.
 
@@ -216,7 +220,7 @@ slots:
   mobile_base_controller:
     role: component
     part: base
-    contract: component.mobile_base.odometry.v1
+    contract: component.mobile_base.odometry.v2
   manipulator_controller:
     role: component
     part: arm
@@ -248,8 +252,8 @@ timed digital-output, radar-source, and GNSS-source Controls.
 The perception Component turns rotating radar sectors into tracked
 application queries; the Localizer converts antenna-frame GNSS measurements
 into local map coordinates and combines them with odometry. Only the tutorial's
-direct digital-I/O Controls remain internal bindings rather than public robot
-slots.
+direct digital-I/O Controls use a custom package-local contract, bound from the
+gripper to the Gateway rather than through a robot slot.
 
 This is where `component.mobile` becomes the mobile-base component subsystem for
 this platform, and `gateway.device_gateway` can become the lower gateway
@@ -270,7 +274,7 @@ not register endpoints or run forwarding code.
 ```yaml
 requires:
   mobility:
-    contract: component.mobile_base.odometry.v1
+    contract: component.mobile_base.odometry.v2
   navigation:
     contract: component.navigation.v1
   incinerator:

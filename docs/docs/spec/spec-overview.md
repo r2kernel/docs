@@ -35,7 +35,10 @@ registered in the built-in R2Kernel spec dictionary. Unqualified IDs
 that standard dictionary; vendors and products use their own segment,
 `<kind>.<vendor>.*`, for example `api.acme.gripper.v1`. Package-local names and
 aliases are displayed as non-standard and do not acquire standard status from
-their spelling alone.
+their spelling alone. A package spec root may contain a standard ID only as an
+identical copy; a differing standard definition and a new ID under a standard
+prefix are refused by `r2kernel-package validate`, at installation, and by the
+SDKs at start ([Versioning and Resolution](versioning-resolution.md)).
 
 Transport timing is runtime metadata. Event delivery exposes observation,
 publication, and reception times. Control delivery exposes command generation,

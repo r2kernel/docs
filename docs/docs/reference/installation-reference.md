@@ -66,6 +66,8 @@ wizard asks for remaining choices.
 | `--console-port PORT` | Set the selected Console connection's port. |
 | `--console-transport http` or `inherit` | Start with HTTP, or retain the existing connection choice. |
 | `--terminal off` or `inherit` | Disable Web Terminal, or retain its existing setting. |
+| `--app-uplink auto`, `off` or `<nic>[,<nic>...]` | Set app network access: automatic, off, or only the listed interfaces. Upgrades keep the current setting when omitted. See [App Network Access](../operate/app-outbound-connections.md). |
+| `--app-uplink-exclude <nic>[,<nic>...]` | Interfaces apps never use. An empty value clears the list. |
 | `--no-tui` | Use line-based interactive prompts. |
 | `--install-token-file PATH` | Read a required distribution token from a private file; never put a token in command arguments. |
 
@@ -105,6 +107,9 @@ exact release even if the channel changes. Installation and replacement rules
 for the selected prefix still apply. Each prefix has one active runtime version.
 
 Fetch the script over verified HTTPS: a checksum supplied by a script downloaded over HTTP cannot authenticate that script.
+Release locations must use `https://` as well. `R2KERNEL_ALLOW_PLAIN_HTTP=1`
+(installer option `--allow-plain-http`) is an explicit opt-in for a trusted
+local mirror.
 
 Version-specific `install.sh` assets in the
 [official repository Releases](https://github.com/r2kernel/r2kernel/releases)
@@ -115,7 +120,9 @@ If the distribution service requires authentication, use `--install-token-file`
 with a regular, non-symlink file containing one token, no larger than 4,096 bytes,
 and mode `0600` or stricter. `R2KERNEL_INSTALL_TOKEN` is also supported. The public
 entry contains no release payload; authentication is checked when selecting and
-downloading the release.
+downloading the release. With a token, the bootstrap needs curl 7.58 or later: it
+reads the token from a private header file and does not send it to another host
+on a redirect. Wget is not used with a token.
 
 ## System services
 
@@ -129,6 +136,33 @@ sudo /opt/r2kernel/bin/r2kernel system install \
   --prefix /opt/r2kernel \
   --console-password-store /opt/r2kernel/var/lib/security
 ```
+
+This command does not ask questions. It keeps the installed app network access
+setting, and a new resource authority policy gets `auto` without exclusions.
+Pass `--app-uplink` and `--app-uplink-exclude` to set it, for example to keep apps
+off a VPN or container bridge; see
+[App Network Access](../operate/app-outbound-connections.md). The installer
+wizard asks for this setting only when it registers the services itself.
+
+The serial device policy is opt-in. `--device-policy install` adds a udev rule
+that gives every `ttyS*`, `ttyUSB*`, `ttyACM*` and `ttyAMA*` port to group
+`r2kernel-device`, so programs outside R2Kernel lose access to them.
+`--device-policy skip`, the default on a host without the rule, leaves the
+ports to the system. Without the option, a rule that is already installed is
+kept. The installer takes the same option (or `R2KERNEL_DEVICE_POLICY`); see
+[Resource Control](../operate/resource-control.md#serial-and-device-access).
+
+Time sync starts on PTP domain 24 (`time_sync.domain`). A host that has no
+other R2Kernel host to follow leads that domain as a PTP server. When other
+equipment on the network already uses domain 24, set another domain in the
+configuration before running this command; see
+[Time Sync Operations](../operate/time-sync-operations.md).
+
+Service registration uses the system accounts `r2kernel` (Control) and
+`r2kernel-app` (managed packages) and the groups `r2kernel` (IPC, shared by
+Control and managed packages) and `r2kernel-control` (the Console TLS key; only
+Control, and only when the Control service is registered). It creates those
+that do not exist and records them for the uninstaller.
 
 Custom configurations and credential stores require the matching command and
 permissions. Keep the installer-provided command when it names a custom config.
@@ -174,10 +208,27 @@ preserves unrelated files and refuses cleanup while required resources are live
 or cannot be inspected safely. Follow the reported refusal rather than deleting
 service or resource metadata manually.
 
+Outside the prefix, the uninstaller of a system installation removes the host
+state that installation set up:
+
+- its service units and `/usr/local/bin/r2kernel-config`
+- its resource authority policy under `/etc/r2kernel` and the package cgroup
+- the approved-package snapshot cache `/var/lib/r2kernel-approved-packages`
+  that earlier 1.0.0 candidates created, if present
+- the udev device policy and the runtime directories under `/run`, once no
+  other installation's R2Kernel services are registered. Devices get back
+  their recorded owner, group and mode.
+
+It does not remove system packages. If service setup installed `linuxptp` or
+`ethtool` for time sync, remove them with the package manager when nothing else
+uses them.
+
 Accounts and groups are kept by default. Check the uninstaller's `--help` before
 using `--remove-users`; it removes only recorded installation-created identities
-that are no longer in use. A dry-run is an observational preflight: final
-live-resource checks happen after services stop.
+that are no longer in use. Without it, the uninstaller names the accounts and
+groups it kept. The uninstaller is removed with the prefix, so remove them
+later with `userdel` and `groupdel` once nothing uses them. A dry-run is an
+observational preflight: final live-resource checks happen after services stop.
 
 ## Installation problems
 

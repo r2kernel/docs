@@ -151,6 +151,34 @@ A mount describes a rigid physical attachment such as an arm or sensor attached
 to a body. Localization instead joins two dynamic reference chains at the
 odometry frame.
 
+### Frames Named By Samples
+
+Some APIs bind a field of their samples to a spatial port of the provider
+(`frames.policy: spatial_ports`, see
+[API Contract Model](../spec/api-contract-model.md#frame-policies)).
+`api.locomotion.odometry.v2` maps `frame_id` to the provider's `reference` port
+and `child_frame_id` to its `body` port, so every odometry sample names the
+provider's actual odometry and body frames. The provider declares both ports as
+exports with literal frames, and the SDK refuses a sample whose frame differs
+(`frame_mismatch`).
+
+A consumer takes these frames from the sample, or from the provider's port in
+the runtime frame graph, where the frame appears as
+`<provider subsystem>/<frame>`, for example `component.mobile/cleaner_base`. It
+never takes them from its own configuration or from a default such as
+`base_link`. A provider can then rename its body frame without breaking a
+consumer that silently assumed the old name; with v1, where the frame fields are
+optional and default to `odom` and `base_link`, such a change went undetected.
+
+```python
+def on_odometry(self, sample, timestamp):
+    body_frame = sample["child_frame_id"]      # the provider's body port frame
+    reference_frame = sample["frame_id"]       # the provider's reference port frame
+```
+
+The tutorial localizer follows this rule: the body frame of its position fix
+is the `child_frame_id` of the latest odometry sample.
+
 Navigation does not declare a spatial surface merely because it uses a robot
 pose. It consumes the localization component's API, whose messages identify the
 reference and body frames. Spatial ports remain reserved for subsystems that

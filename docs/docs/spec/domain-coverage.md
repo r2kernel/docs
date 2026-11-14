@@ -66,7 +66,7 @@ For mobile robots, R2Kernel separates locomotion, localization, mapping, and nav
 | `api.locomotion.velocity.*` | generic timed body-velocity control | `velocity_command`, `set_velocity_limits`, `get_velocity_limits`, `stop` |
 | `api.locomotion.velocity_reference.*` | Control-free body-velocity reference for applications; the component owns timed actuator dispatch | `set_velocity_reference`, `stop` |
 | `api.locomotion.mobile_base.state.*` | wheeled-platform state and drive authority | `mobile_base_state`, `fault_state`, `enable_drive`, `disable_drive`, `clear_fault` |
-| `api.locomotion.odometry.*` | mobile-base odometry publication | `odometry` |
+| `api.locomotion.odometry.*` | mobile-base odometry publication; from v2 every sample names the provider's `reference` and `body` port frames | `odometry` |
 | `api.locomotion.diff_drive.*` | optional differential-drive wheel surface | `wheel_command`, `wheel_state`, `get_diff_drive_kinematics` |
 | `api.localization.*` | self-localization | `pose_estimate`, localization status |
 | `api.mapping.*` | map production and publication | `occupancy_map`, `map_state` |
@@ -77,6 +77,8 @@ For mobile robots, R2Kernel separates locomotion, localization, mapping, and nav
 | Component | Conformance API contracts |
 |---|---|
 | `component.mobile_base.v1` | locomotion velocity, mobile-base state |
+| `component.mobile_base.odometry.v1` | locomotion velocity, mobile-base state, odometry v1 |
+| `component.mobile_base.odometry.v2` | locomotion velocity, mobile-base state, odometry v2 (frames bound to the `reference` and `body` ports) |
 | `component.mobile_base.localized.v1` | locomotion velocity, mobile-base state, localization |
 | `component.mobile_base.autonomous.v1` | locomotion velocity, mobile-base state, localization, navigation |
 | `component.localizer.v1` | localization |

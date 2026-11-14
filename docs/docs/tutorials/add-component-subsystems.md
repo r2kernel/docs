@@ -111,7 +111,7 @@ requires:
 
 provides:
   mobile_base:
-    contract: component.mobile_base.v1
+    contract: component.mobile_base.odometry.v2
 ```
 
 Open the code.
@@ -136,9 +136,13 @@ response status is `applied`. It retains timing and validity responsibility at
 this boundary. The gateway exposes `servo_control` only as the canonical
 actuator-servo Control surface.
 
-The mobile component also publishes `api.locomotion.odometry.v1`. Its odometry
+The mobile component also publishes `api.locomotion.odometry.v2`. Its odometry
 starts at zero and accumulates relative motion in `odom`; it does not claim to
-know the robot's position in the arena map.
+know the robot's position in the arena map. Every sample names its frames:
+`frame_id` is the frame of the `reference` port (`odom`) and `child_frame_id`
+the frame of the `body` port (`cleaner_base`). The controller reads both from
+its own manifest, and the SDK refuses a sample that names other frames
+(`frame_mismatch`).
 
 ## 2. Manipulator Component Subsystem
 
@@ -195,8 +199,9 @@ nano tutorials/subsystems/component.gripper/gripper_controller.py
 This is still a virtual gripper, but it has the same boundary a real gripper
 component subsystem would need. Application code asks for an action, and the
 subsystem owns how to realize it through a digital I/O Gateway Control. The
-Gateway's former Procedures are represented by explicit private Controls; the
-gripper's public Procedures remain on the Component.
+Gateway's former Procedures are represented by the typed Controls of the custom
+`api.tutorial.gateway.device_gateway.digital_io.v1` contract; the gripper's
+application-facing Procedures remain on the Component.
 
 ## 4. Incinerator Component Subsystem
 
@@ -219,8 +224,8 @@ one bit. The compound does not know the channel index or implement burn.
 
 The incinerator requires `api.io.digital.timed_output.v1` as
 `timed_digital_output`. The gateway enforces the update-gap lease and safe-off
-behavior. The gripper binds to an internal typed Control adapter for the
-tutorial's one-shot set/readback behavior. The standard
+behavior. The gripper binds to the custom typed `digital_io` Control contract
+for the tutorial's one-shot set/readback behavior. The standard
 `api.io.digital.output.v1` Procedure contract remains available to Components,
 but a Gateway does not expose Procedures.
 
@@ -262,8 +267,11 @@ nano tutorials/subsystems/component.localizer/localizer.py
 
 It converts GNSS coordinates to local ENU map metres relative to the configured
 WGS84 origin, accounts for the antenna mounting translation, and takes yaw from
-odometry rather than a truth-heading field. It publishes `api.localization.v1`
-and leaves `odom -> cleaner_base` under the mobile component's ownership. This
+odometry rather than a truth-heading field. The body frame of its position fix
+is the odometry sample's `child_frame_id`, never a locally configured name, and
+it drops a sample that does not name its frames. It publishes
+`api.localization.v1` and leaves `odom -> cleaner_base` under the mobile
+component's ownership. This
 makes the receiver source and localization algorithm independent replaceable
 components.
 The localizer republishes the existing `api.positioning.absolute_pose.v1`
@@ -297,7 +305,7 @@ interfaces.
 | Requirement or surface | Source or contract | Meaning |
 | --- | --- | --- |
 | `localization` | `component.localizer.v1` | current map-relative body pose |
-| `mobility` | `component.mobile_base.v1` | bounded body velocity and stop control |
+| `mobility` | `component.mobile_base.odometry.v2` | bounded body velocity and stop control |
 | `navigation` | `component.navigation.v1` | goal/path operations and navigation state |
 
 The component accepts `navigate_to_pose` and `follow_path` operations from the
@@ -323,8 +331,8 @@ and the gateway's `servo_control` for periodic or latency-sensitive exchanges.
 Applications submit body-motion references through a Procedure; the mobile
 component then owns the timed gateway exchange for each accepted reference.
 Other Procedure endpoints cover scan, gripper open/close, stop, and status
-queries. The gripper's low-level digital output exchange is a private Control
-adapter; it is not an application-facing Procedure.
+queries. The gripper's low-level digital output exchange uses the Controls of
+the custom `digital_io` contract; it is not an application-facing Procedure.
 A contract endpoint must not be registered on both planes.
 
 The simulated world state is read by the browser from the provided simulator API,
@@ -349,7 +357,7 @@ r2kernel subsystem status component.navigation
 You should see active subsystem sessions. The relevant contracts are these.
 
 ```text
-component.mobile_base.v1
+component.mobile_base.odometry.v2
 component.manipulator.v1
 component.gripper.v1
 api.actuator.servo.v1
@@ -360,7 +368,7 @@ api.sensor.radar.source.v1
 api.sensor.gnss.source.v1
 component.perception.v1
 api.positioning.absolute_pose.v1
-api.locomotion.odometry.v1
+api.locomotion.odometry.v2
 component.localizer.v1
 api.navigation.v1
 component.navigation.v1

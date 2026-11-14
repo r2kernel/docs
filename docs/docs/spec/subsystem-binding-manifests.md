@@ -78,8 +78,10 @@ spec root on both sides and declare that root in `package.yaml` under
 lists. This lets the caller and provider prepare the request/response codecs
 before Ready and compare their fingerprints. A private wiring name and endpoint
 names alone do not describe the message types needed by the caller. The Cleaner
-Robot gripper and Gateway demonstrate this with their private digital I/O API;
-the API remains outside the official dictionary.
+Robot gripper and Gateway take their digital I/O API from a package-local spec
+root the same way, but declare it `visibility: public` without endpoint lists,
+since the contract names the endpoints; the API remains outside the official
+dictionary.
 
 When a public interface contract is a canonical `component.*` id, the SDK
 expands the component into its conformance API contracts and validates the
@@ -149,6 +151,30 @@ spatial:
 The component spec determines the required port names and directions. The
 subsystem manifest determines the concrete local frame names. A claim is
 rejected when required component ports are missing or have the wrong direction.
+
+A provider of an API whose `frames.policy` is `spatial_ports`, such as
+`api.locomotion.odometry.v2` through `component.mobile_base.odometry.v2`, must
+also declare each port named in `frames.ports` as an `export` port with a
+literal `frame`. A missing port, an `import` port and a `source` alias are
+refused, because the provider's samples and its consumers read the frame from
+this manifest ([API Contract Model](api-contract-model.md#frame-policies)).
+
+```yaml
+spatial:
+  participation: required
+  ports:
+    reference:
+      direction: export
+      semantic: odometry_reference
+      frame: odom
+    body:
+      direction: export
+      semantic: mobile_body
+      frame: base_link
+provides:
+  mobile_base:
+    contract: component.mobile_base.odometry.v2
+```
 
 A compound can connect the spatial ports of its logical requirements.
 
