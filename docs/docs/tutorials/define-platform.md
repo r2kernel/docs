@@ -66,11 +66,8 @@ runtime, use the following.
 http://127.0.0.1:8091/
 ```
 
-For a remote runtime host, use the following.
-
-```text
-http://<runtime-host>:8091/
-```
+For a remote runtime, use the same URL after setting up SSH forwarding in
+[Step 1](start-simulation-world.md#if-the-runtime-is-remote).
 
 The world is still visible, but no top-level app is running yet. This stage
 checks that the reusable platform stack can exist before any specific
@@ -170,7 +167,7 @@ spatial:
         requirement: perception
         port: sensor
       transform:
-        translation: [0.08, 0.03, 0.0]
+        translation: [0.0, 0.0, 0.0]
         rotation_xyzw: [0.0, 0.0, 0.1305261922, 0.9914448614]
 ```
 
@@ -183,9 +180,9 @@ with the compound's static mounts.
 The mobile component owns `odom -> cleaner_base`. The localizer aliases the
 mobile `reference` frame through its odometry binding and owns `map -> odom`.
 The compound re-exports the localizer's `map` frame and mounts the arm, gripper,
-and radar onto the localized mobile body. The radar mount deliberately has a
-nonzero translation and yaw, so the tutorial can verify a real Spatial lookup
-rather than an identity shortcut.
+and radar onto the localized mobile body. The radar is centered on the body
+and retains a 15-degree yaw offset, so detections still require a Spatial
+transform into the body frame.
 
 After this stage is running, inspect the graph.
 

@@ -85,6 +85,10 @@ subsystem layer, platform, and application are defined.
 
 ## Learned Radar Stop And Restart
 
+An arena reset starts a new radar session. The learned policy clears the old
+lock, stops to refresh odometry, and scans for up to one full sweep before
+exploring. A fresh in-range contact can start an approach during the sweep.
+
 The learned-radar app runs its policy in a worker. When the app receives Stop,
 it cancels the active run. Once Stop returns, that canceled run sends no further
 policy actuation. The worker checks cancellation after delayed scan calls and

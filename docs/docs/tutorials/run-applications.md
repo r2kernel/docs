@@ -58,9 +58,9 @@ and runtime, use the following.
 http://127.0.0.1:8091/?app=app.cleaner.radar
 ```
 
-For a remote runtime host, use the SSH forwarding from Step 1 and forward port
-`8001` for runtime events and policy controls. The browser URL remains the local
-URL above.
+For a remote runtime host, use the two SSH forwards from Step 1. The viewer
+relays events and policy controls on port `8091`, so it does not need a separate
+forward to Control. The browser URL remains the local URL above.
 
 The world viewer automatically polls the simulator API and observes runtime app
 status when the runtime is reachable. Use **Reconnect** only after restarting
@@ -82,14 +82,10 @@ chooses a trash target only when its latest radar observation is fresh and the
 target is inside the configured scan range, then submits a framed goal through
 the exported navigation API. Stale tracks remain visible for diagnostics but
 cannot trigger a new navigation or collection command.
-The tutorial mounts `cleaner_radar` 0.08 m forward and 0.03 m left of
-`cleaner_base`, rotated 15 degrees about the vertical axis. The simulator
-measures from this sensor pose, and navigation resolves the declared Spatial
-transform before converting a sensor-relative goal into a map goal. Changing
-only the mount declaration without changing the simulated physical sensor
-would make the displayed frame graph and measurements disagree.
-The viewer also draws the beam from the simulator-reported sensor pose, not
-from the robot body's origin.
+The tutorial centers `cleaner_radar` on `cleaner_base` with a 15-degree yaw.
+The simulator measures from the declared mount and the viewer draws its beam
+from the simulator-reported sensor pose. Navigation resolves the Spatial
+transform before converting a sensor-relative goal into a map goal.
 The App transforms each radar-relative target to the body frame to plan a
 body-centered stand-off and calculate gripper extension. It expresses that
 body goal back in the radar frame when calling navigation, so navigation's
@@ -115,18 +111,23 @@ crosses objects. It does not return trash IDs, world coordinates, or a complete
 maintains short-lived tracks with Component-owned IDs for the application's
 `scan`, `front`, and `nearest` queries. The viewer may also show simulator
 ground truth for teaching, but that is not part of the robot-facing radar
-contract. The simulated sensor advances independently of the application loop,
-so the beam continues rotating while collection and burning procedures run.
-This tutorial uses the current Spatial transform for fresh observations; it
-does not yet provide historical transform lookup at each return timestamp or
-motion compensation across a moving robot's full revolution.
+contract. The application polls perception separately from navigation and
+pickup, so the **Radar sample** in the viewer can advance during motion.
 
-The application locks the first selected contact until collection completes or
-the perception Component loses it. Contacts discovered during that action enter
-a FIFO queue; a newer or closer contact does not replace the active target. The app
-keeps that identity while it opens the gripper, extends the arm, closes the
-gripper, retracts, and calls the standard trigger API through the compound's
-`trash_disposal` export.
+The rule-based app associates each fresh contact with a recent map pose and
+locks the first selected map position. A newer or closer contact does not replace
+it. After moving, the app waits for a fresh observation near that position before
+picking up. If the target is not confirmed for a little longer than one full
+sweep, the app can lock a different contact. An arena reset starts a new radar
+session and clears the old target. The cyan **TARGET** ring keeps the same number
+for the active lock. After pickup and burning through the compound's
+`trash_disposal` export, the viewer increments **Burned** and shows the longer
+burn effect.
+
+Resetting or restarting the simulator starts a new servo travel baseline. The
+mobile component keeps the previous odometry translation rather than integrating
+the reset as wheel travel, and restores heading from the new arena's zero-yaw
+reference. GNSS realigns map position; it does not provide an independent heading.
 
 During navigation, `component.navigation` refreshes velocity commands while the
 mobile component and simulator enforce their command TTLs. The app waits on the
@@ -196,8 +197,7 @@ Then start the radar deployment on that host.
 r2kernel deploy up tutorials/deployments/radar.deployment.yaml --replace
 ```
 
-With SSH forwarding active, open this world viewer URL. Forward port `8001` as
-well if the browser also needs to observe or control the runtime.
+With the two SSH forwards from Step 1 active, open this world viewer URL.
 
 ```text
 http://127.0.0.1:8091/?app=app.cleaner.radar

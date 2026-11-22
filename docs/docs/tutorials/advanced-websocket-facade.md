@@ -33,7 +33,7 @@ The important files are these.
 | `action_status.mjs` | action status panel for app and teleop results |
 | `payloads.mjs` | payload unwrapping for WebSocket and simulator responses |
 
-`run_sim_world.py` serves this directory with Python's static HTTP server. It
+`run_sim_world.py` serves this directory with the loopback tutorial viewer server. It
 does not start robot subsystems.
 
 ## 2. Read The World Viewer Facade Client
@@ -213,7 +213,7 @@ robot body and not yet burned.
 
 The frontend defaults to the page host for both runtime connections.
 
-- WebSocket control backend - `ws://<page-host>:8001`
+- World-viewer WebSockets - the viewer's origin (normally `ws://127.0.0.1:8091`)
 - simulator API - `http://<page-host>:8092`
 
 On a local install, open.
@@ -235,8 +235,9 @@ Then start the platform deployment on that host.
 r2kernel deploy up tutorials/deployments/stages/robot.deployment.yaml
 ```
 
-Forward port `8001` too for runtime events and the managed Teleop frontend. Then
-open this URL through the forwarded ports.
+The world viewer relays runtime events on port `8091`. Forward port `8001` only
+for the separately hosted managed Teleop frontend or Control API. Then open this
+world-viewer URL through the forwarded ports.
 
 ```text
 http://127.0.0.1:8091/?app=app.cleaner.teleop

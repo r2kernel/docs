@@ -84,11 +84,8 @@ runtime, use the following.
 http://127.0.0.1:8091/
 ```
 
-For a remote runtime host, use the following.
-
-```text
-http://<runtime-host>:8091/
-```
+For a remote runtime, use the same URL after setting up SSH forwarding in
+[Step 1](start-simulation-world.md#if-the-runtime-is-remote).
 
 The robot still does not move from the browser. That is correct. This stage
 adds the gateway boundary only; there is no controller or application yet.

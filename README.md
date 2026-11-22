@@ -1,6 +1,6 @@
 # R2Kernel Docs
 
-This repository contains R2Kernel documentation source for release `v1.0.0`.
+This repository contains R2Kernel documentation source for release `v1.0.1`.
 
 For documentation feedback and usage questions, use the shared R2Kernel issue
 tracker linked in [CONTRIBUTING.md](CONTRIBUTING.md).

@@ -272,6 +272,7 @@ sudo r2kernel subsystem bind app.cleaner.radar.manipulation compound.cleaner.art
 sudo r2kernel subsystem bind app.cleaner.radar.gripper compound.cleaner.gripper_control
 sudo r2kernel subsystem bind app.cleaner.radar.trash_disposal compound.cleaner.trash_disposal
 sudo r2kernel subsystem bind app.cleaner.radar.perception compound.cleaner.object_detection
+sudo r2kernel subsystem bind app.cleaner.radar.localization compound.cleaner.localization
 ```
 
 The list covers remote and local requirements. Inspect `r2kernel subsystem bindings --json` and require every

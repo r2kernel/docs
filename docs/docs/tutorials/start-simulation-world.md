@@ -87,10 +87,11 @@ http://127.0.0.1:8091/
 
 When the robot application is running in later steps, open the same URL and
 the page automatically observes app status when the runtime is reachable. The
-frontend infers the simulator API on port `8092` and the runtime WebSocket on
-port `8001` from the page host. Use **Reconnect** only after changing network
-settings or restarting the runtime. Forward port `8001` as well when you need
-runtime events or policy controls. Later application steps supply an `app` query
+viewer connects to the simulator API on port `8092` and relays its two Control
+WebSockets through its own loopback origin on port `8091`. It does not forward
+other Control routes or require changing Control's allowed origins. If Control
+uses a custom API port, start the viewer with `--control-port PORT`. Use
+**Reconnect** after restarting the runtime. Later application steps supply an `app` query
 parameter to target the running application; that parameter does not start a
 deployment. The `ws`, `sim`, and `connect` parameters are for automated tests or
 unusual proxy layouts.

@@ -2,7 +2,7 @@ site_name: R2Kernel Docs
 site_description: Runtime kernel documentation for software-defined robotics with R2Kernel.
 site_url: https://docs.r2kernel.org/
 extra:
-  r2kernel_version: v1.0.0
+  r2kernel_version: v1.0.1
 theme:
   name: material
   custom_dir: overrides
